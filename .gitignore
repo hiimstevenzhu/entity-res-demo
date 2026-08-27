@@ -58,6 +58,9 @@ Thumbs.db
 # LaTeX build outputs
 latex/
 
+# JSON files
+*.json
+
 # Miscellaneous
 *.bak
 *.swp
