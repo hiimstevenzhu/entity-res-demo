@@ -1,0 +1,87 @@
+simulation:
+  dataset_size: 100 # Number of total entities - NOT the total number of rows
+  overlap_percentage: 0.10 # 10% true aggregate matches
+  source_a_rows_per_entity: 100 # Simulates multiple transactions per person
+  source_b_rows_per_entity: 120  
+
+features: # The actual features used to generate the data
+  - name: "categorical"
+    type: "categorical"
+    num_classes: 25
+    missing_rate: 0.05  
+
+  - name: "numerical_noisy"
+    type: "numerical"
+    noise_type: "gaussian"
+    noise_sigma: 2.5
+    missing_rate: 0.05  
+
+  - name: "datetime_noisy"
+    type: "datetime"
+    start_date: "2026-01-01"
+    end_date: "2026-06-01"
+    noise_type: "gaussian"
+    noise_sigma_hours: 6.0
+    missing_rate: 0.00 # For all datetime columns, we set missing_rate to 0.0.  
+
+available_features: # The features currently available for data generation
+  - name: "categorical"
+    type: "categorical"
+    num_classes: 25
+    missing_rate: 0.05
+
+  - name: "numerical_noisy"
+    type: "numerical"
+    noise_type: "gaussian"
+    noise_sigma: 2.5
+    missing_rate: 0.0
+
+  - name: "numerical_clean"
+    type: "numerical"
+    noise_type: "none"
+    missing_rate: 0.05
+
+  - name: "datetime_noisy"
+    type: "datetime"
+    start_date: "2026-01-01"
+    end_date: "2026-06-01"
+    noise_type: "gaussian"
+    noise_sigma_hours: 2.0
+    missing_rate: 0.02
+
+  - name: "datetime_clean"
+    type: "datetime"
+    start_date: "2026-01-01"
+    end_date: "2026-06-01"
+    noise_type: "none"
+    missing_rate: 0.0
+
+  - name: "first_name_noisy"
+    type: "first_name"
+    typo_rate: 0.1
+    nickname_rate: 0.2
+    truncation_rate: 0.1
+    elongation_rate: 0.1
+    missing_rate: 0.05
+
+  - name: "first_name_clean"
+    type: "first_name"
+    typo_rate: 0.0
+    nickname_rate: 0.0
+    truncation_rate: 0.0
+    elongation_rate: 0.0
+    missing_rate: 0.05
+
+  - name: "last_name_noisy"
+    type: "last_name"
+    typo_rate: 0.1
+    truncation_rate: 0.1
+    elongation_rate: 0.05
+    missing_rate: 0.05
+
+  - name: "last_name_clean"
+    type: "last_name"
+    typo_rate: 0.0
+    truncation_rate: 0.0
+    elongation_rate: 0.0
+    missing_rate: 0.05 

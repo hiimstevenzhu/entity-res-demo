@@ -1,0 +1,44 @@
+# Configuration for entity resolution pipeline
+# Paths are relative to the location of this config file
+
+# Path to the em_pipeline package (relative to config file)
+em_pipeline_path: "../em_pipeline"
+
+# Base directory for datasets (relative to config file)
+# Points to the data directory containing generated parquet files
+data_dir: "../data"
+
+# Mapping of friendly dataset names to actual file names (without extension)
+# Format: friendly_name: {a: "file_prefix_a", b: "file_prefix_b"}
+# The actual files will be {file_prefix}_{a|b}.parquet in the data_dir
+dataset_mapping:
+  # Smallest dataset pair (earliest generated)
+  smallestest:
+    a: "smallestest_dataset_a"
+    b: "smallestest_dataset_b"
+
+  # Small dataset pair
+  smallest:
+    a: "smallest_dataset_a"
+    b: "smallest_dataset_b"
+
+  # Smaller dataset pair
+  smaller:
+    a: "smaller_dataset_a"
+    b: "smaller_dataset_b"
+
+  # Low cardinality dataset pair (useful for testing blocking rules)
+  low_card:
+    a: "low_card_dataset_a"
+    b: "low_card_dataset_b"
+
+  # Medium overlap dataset pair (50% overlap)
+  o50:
+    a: "o50_dataset_a"
+    b: "o50_dataset_b"
+
+  # You can add more dataset pairs here as they are generated
+  # Example format:
+  #   larger:
+  #     a: "larger_dataset_a"
+  #     b: "larger_dataset_b"

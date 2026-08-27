@@ -1,0 +1,19 @@
+simulation:
+  dataset_size: 100 # Number of total entities - NOT the total number of rows
+  overlap_percentage: 0.20 # 10% true aggregate matches
+  source_a_rows_per_entity: 18 # Simulates multiple transactions per person
+  source_b_rows_per_entity: 12  
+
+features: # The actual features used to generate the data
+  - name: "categorical"
+    type: "categorical"
+    num_classes: 2
+    missing_rate: 0.05  
+
+  - name: "datetime_noisy"
+    type: "datetime"
+    start_date: "2026-01-01"
+    end_date: "2026-03-01"
+    noise_type: "gaussian"
+    noise_sigma_hours: 6.0
+    missing_rate: 0.00 # For all datetime columns, we set missing_rate to 0.0.  
