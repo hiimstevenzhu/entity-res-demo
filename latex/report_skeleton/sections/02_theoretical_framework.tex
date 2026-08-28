@@ -1,0 +1,385 @@
+% ============================================================
+% 2. Theoretical Framework & Methodology
+% ============================================================
+\section{Theoretical Framework \& Methodology}
+\label{sec:framework}
+
+% --- 2.1 FELLEGI-SUNTER: Core Theory (Front-loaded) ---
+\subsection{Foundations: The Fellegi-Sunter Probabilistic Model}
+\label{sec:fs_foundations}
+
+Both frameworks build on the \fellegisunter{} probabilistic record linkage model \cite{fellegi1969theory}, implemented via \splink{} \cite{splink2024}. Full derivations are in \Cref{annex:math_derivations}.
+
+\subsubsection{Model Setup}
+For a record pair $(r_1, r_2)$, we observe a \textbf{comparison vector} $\boldsymbol{\gamma} = (\gamma_1, \dots, \gamma_K)$ where each $\gamma_k$ is the comparison outcome for field $k$ (e.g., exact match, Jaro-Winkler band, percentage-difference bucket). The linkage task is a hypothesis test between match ($H_M$) and non-match ($H_U$).
+
+The model assumes \textbf{conditional independence} of field comparisons given match status:
+\begin{align}
+	\mathbb{P}(\boldsymbol{\gamma} \mid M) & = \prod_{k=1}^K m_k(\gamma_k), &
+	\mathbb{P}(\boldsymbol{\gamma} \mid U) & = \prod_{k=1}^K u_k(\gamma_k)
+\end{align}
+where $m_k(\gamma) = \mathbb{P}(\gamma_k = \gamma \mid M)$ is the \textit{m-probability} (probability of observing comparison value $\gamma$ on field $k$ among true matches) and $u_k(\gamma) = \mathbb{P}(\gamma_k = \gamma \mid U)$ is the \textit{u-probability} (same for non-matches). The prior match probability in the comparison space is $\pi = \mathbb{P}(M)$.
+
+\subsubsection{Match Weight and Posterior Probability}
+\textit{Remark}: The match weights and match probabilities have a unique one-to-one mapping; we can convert between them seamlessly given the match prior $\pi$. The weights are additive and intuitive for feature debugging, while the final probabilities are calibrated for operational decision-making. \citep{winkler1993improved}
+
+The likelihood ratio is $\Lambda(\boldsymbol{\gamma}) = \mathbb{P}(\boldsymbol{\gamma} \mid M) / \mathbb{P}(\boldsymbol{\gamma} \mid U)$. Under conditional independence, the \textbf{match weight} (log-likelihood ratio, base~2) decomposes additively:
+\begin{equation}
+	w(\boldsymbol{\gamma}) = \log_2 \Lambda(\boldsymbol{\gamma}) = \sum_{k=1}^K \log_2 \frac{m_k(\gamma_k)}{u_k(\gamma_k)} .
+\end{equation}
+Each field contributes a weight $w_k(\gamma_k)$ that depends on the observed comparison level—exact match yields large positive weight ($m \gg u$), mismatch yields large negative weight ($u \gg m$), partial match yields an intermediate weight, enabling fuzzy matching.
+
+By Bayes' theorem, the posterior match probability is:
+\begin{equation}
+	\mathbb{P}(M \mid \boldsymbol{\gamma}) = \frac{\pi \cdot 2^{w(\boldsymbol{\gamma})}}{\pi \cdot 2^{w(\boldsymbol{\gamma})} + (1-\pi)} .
+	\label{eq:posterior}
+\end{equation}
+Equivalently, $w = \log_2 \left( \frac{\mathbb{P}(M \mid \boldsymbol{\gamma})}{1 - \mathbb{P}(M \mid \boldsymbol{\gamma})} \cdot \frac{1-\pi}{\pi} \right)$.
+
+
+\subsubsection{Parameter Estimation}
+\textit{Remark}: The EM algorithm learns the unique discriminatory value of each attribute based on how frequently features match or differ across your data, allowing it to automatically figure out which columns deserve a higher match weight.
+
+The parameters $\{m_k, u_k, \pi\}$ are estimated via the \textbf{Expectation-Maximisation (EM) algorithm} \cite{dempster1977maximum} on a blocked comparison space. \splink{} initialises $\pi$ using a strict blocking rule (high precision) and a target recall $R$, then iterates E-step (compute posteriors $\tau_i = \mathbb{P}(M \mid \boldsymbol{\gamma}_i)$) and M-step (re-estimate $m_k, u_k, \pi$ weighted by $\tau_i$) until convergence. Full details are in \Cref{annex:em_derivation}.
+
+% --- 2.2 TWO FRAMEWORKS OVERVIEW ---
+\subsection{Two Frameworks for Global Entity Resolution}
+\label{sec:two_frameworks_overview}
+
+We study two distinct frameworks for resolving \globalentity{}s under the assumption of \textbf{stable within-dataset identifiers}: records sharing a \texttt{unique\_id} belong to the same \globalentity{}. The frameworks differ in \textit{where} and \textit{how} the local-to-global transition occurs.
+
+\begin{description}
+	\item[\textbf{Framework 1: Score Aggregation (Local $\to$ Global)}]
+		Perform local probabilistic record linkage (\fellegisunter{} via \splink{}) on individual record pairs, producing a matrix of match weights/probabilities per \globalentity{} pair. Aggregate this matrix to a single global score using scalar functions (Sum, Mean, Noisy-OR, Max) or vector-space aggregation.
+
+	\item[\textbf{Framework 2: Profile Aggregation (Behavioural Profile Matching)}]
+		We compress each \globalentity{}'s records into a fixed-dimensional \textbf{behavioural profile} (a latent feature vector/set summarising its multi-record behaviour). Using set-similarity functions for comparisons, perform probabilistic linkage on these profiles (\fellegisunter{} via \splink{}) to produce a scalar global match probabilities per record pair.
+\end{description}
+
+\Cref{tab:framework_comparison} illustrates the architectural distinction.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{images/frameworks/aggregation.png}
+	\caption{Framework 1 (Score Aggregation). Records are compared pairwise by Fellegi-Sunter, producing per-field comparison levels $\gamma_k$ and a matrix of match probabilities $P$ per global entity pair. Scalar aggregation (e.g., Noisy-OR) yields a global score. For $(e_1,e_1)$, multiple corroborating buy-buy pairs drive the score $\approx 1$; for $(e_2,e_2)$, a single buy-sell mismatch yields a low score.}
+	\label{fig:framework1_score_agg}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{images/frameworks/profile.png}
+	\caption{Framework 2 (Profile Aggregation). Records are first aggregated per entity into profiles (sets of actions, datetime ranges, frequency vectors). Set similarity metrics (Soft Jaccard, Monge-Elkan, Simpson, Range Overlap) compute per-dimension similarities $\mathbf{x} = (x_1,\dots,x_D)$. A Fellegi-Sunter model then learns discriminative weights and outputs calibrated posteriors. For $(e_1,e_1)$, overlapping actions and close datetimes yield high similarity; for $(e_2,e_2)$, disjoint actions yield near-zero similarity.}
+	\label{fig:framework2_profile_agg}
+\end{figure}
+
+
+\begin{table}[htbp]
+	\centering
+	\caption{Framework Comparison}
+	\label{tab:framework_comparison}
+	\begin{tabular}{lcc}
+		\toprule
+		\textbf{Aspect}            & \textbf{Score Aggregation}                 & \textbf{Profile Aggregation}                            \\
+		\midrule
+		Local-to-Global Transition & \textit{After} matching (on scores)        & \textit{Before} matching (on records)                   \\
+		Core Operation             & $\mathcal{A}(\{w_{ij}\}_{i=1..m, j=1..n})$ & $\text{sim}(\text{Agg}(\{r_i\}), \text{Agg}(\{r'_j\}))$ \\
+		Theoretical Grounding      & \fellegisunter{} on local pairs            & \fellegisunter{} on profiles                            \\
+		Interpretability           & Per-field weights $\gamma_k$               & Profile feature contributions                           \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+% --- 2.3 FRAMEWORK 1: SCORE AGGREGATION ---
+\subsection{Framework 1: Score Aggregation (Local $\to$ Global)}
+\label{sec:score_aggregation}
+\label{sec:agg_functions}
+
+In this framework, the local layer produces a matrix of match probabilities $P \in [0,1]^{m \times n}$ (or weights $W \in \mathbb{R}^{m \times n}$) for each \globalentity{} pair $(e_A, e_B)$ with $m = |R_A|$, $n = |R_B|$. The global score is $s(e_A, e_B) = \mathcal{A}(P)$.
+
+\subsubsection{Local Column Comparison Functions (Framework 1 Input)}
+\label{sec:local_column_similarities}
+
+The local \fellegisunter{} layer requires comparison functions $\gamma_k(r_1, r_2)$ for each field $k$. These produce the discrete, binned \textit{gamma values} that feed into the $m/u$ probability model. We use type-specific comparison levels implemented as Splink \texttt{CustomComparison}:
+\begin{itemize}
+	\item \textbf{Categorical (Exact Match):} $\gamma_{\text{cat}}(r_1, r_2) = \mathbb{I}[r_{1,\text{cat}} = r_{2,\text{cat}}]$.
+
+	\item \textbf{Numerical (Percentage Difference):} $\gamma_{\text{num}}(r_1, r_2) = \frac{|r_{1,\text{num}} - r_{2,\text{num}}|}{\max(r_{1,\text{num}}, r_{2,\text{num}})}$.
+
+	\item \textbf{Datetime (Days Apart):} $\gamma_{\text{dt}}(r_1, r_2) = |r_{1,\text{dt}} - r_{2,\text{dt}}|_{\text{days}}$.
+
+	\item \textbf{Text (Jaro-Winkler):} $\gamma_{\text{text}}(r_1, r_2) = \text{JW}(r_{1,\text{text}}, r_{2,\text{text}})$.
+
+	\item \textbf{Set-Valued (Soft Jaccard / Monge-Elkan / Simpson):} As defined in \Cref{sec:set_similarities}.
+\end{itemize}
+
+For each comparison, we deterministically bin the resulting similarity scores into distinct comparison levels ($\gamma_k$). The underlying conditional probabilities—$m_k(\gamma)$ and $u_k(\gamma)$—are learned dynamically during the EM optimization loop. Introducing more comparison levels captures finer similarity distinctions, but it scales the parameter space and risks model overfitting due to data sparsity within narrower bins.
+
+The conditional probabilities are then used to compute the match weight $w_k(\gamma_k)$ and posterior match probability $\mathbb{P}(M \mid \boldsymbol{\gamma})$ for each local record pair. The matrix of match probabilities, $P$, are then aggregated as the subsequent section describes.
+
+\subsubsection{Aggregation Functions}
+\label{sec:aggregation_functions}
+
+Given the matrix $P$ of local match probabilities, the global score is $s(e_A, e_B) = \mathcal{A}(P)$ with $\mathcal{A}$ from the following taxonomy:
+
+\begin{itemize}
+	\item \textbf{Noisy-OR:} $s_{\text{noisy-or}} = 1 - \prod_{i,j} (1 - p_{ij})$. Probability that \textit{at least one} local pair is a true match; saturates quickly with many pairs.
+
+	\item \textbf{Max-Over-Partitions:} $s_{\text{max}} = \max_{i,j} p_{ij}$. Takes strongest local evidence; robust to false positives but discards corroborating evidence.
+
+	\item \textbf{Vector-Space Aggregation:} Compute a score vector per entity (e.g., per-field mean weights) and compare via cosine/Jaccard. Retains more structure but still derives from local pairwise scores.
+
+	\item \textbf{Match Density:} $D_{AB} = \dfrac{\sum_{i\in A, j\in B} p_{ij}}{|A| \cdot |B|}$, representing the average match probability across all record pairs between entities $A$ and $B$.
+
+	\item \textbf{Weighted Jaccard:} $J_w(A,B) = \dfrac{\sum p_{ij}}{|A| + |B| - \sum p_{ij}}$, a generalization of the Jaccard index where record-pair match probabilities weight the intersection.
+
+	\item \textbf{Weighted Overlap:} $O_w(A,B) = \dfrac{\sum p_{ij}}{\min(|A|,|B|)}$, measuring the proportion of the smaller entity's records that participate in matching pairs.
+
+	\item \textbf{Score-Probability Expected Ratio:} $R_{AB} = \log \dfrac{\sum p_{ij} + \varepsilon}{|A| |B| u + \varepsilon}$, where $u$ is the base match probability (prior) and $\varepsilon$ a small smoothing term. Contrasts observed against expected matches under independence.
+\end{itemize}
+
+\noindent\textbf{Theoretical Properties} (proofs in \Cref{annex:agg_properties}):
+\begin{itemize}
+	\item Noisy-OR is monotone in each $p_{ij}$ and in $m,n$ (adding pairs never decreases the score).
+	\item Max is invariant to dominated pairs.
+	\item Match density assumes rank-1 structure $p_{ij} = a_i b_j$ for cardinality invariance.
+	\item All scalar aggregations assume exchangeability of local pairs—violated under cardinality imbalance.
+\end{itemize}
+
+
+\subsubsection{Extension: Using aggregation functions as second-level comparisons}
+As an alternative to manually selecting a single baseline aggregation function from the choices outlined above, this report further explores an approach involving framing these very functions as inputs to a \textit{secondary, hierarchical probabilistic linkage stage}.
+
+Instead of arbitrarily selecting between the structural trade-offs of various aggregation functions, we can treat the scalar outputs of these four functions as an entirely new set of group-level \textbf{comparison vectors}.
+
+\paragraph{An analagous approach:}
+In a standard Fellegi-Sunter run, we map raw data fields into discrete comparison levels ($\gamma_k$) and let the EM algorithm dynamically learn their conditional probabilities ($m$ and $u$).
+
+Analogously, we can continuous-bin or discretise the scores from aggregation functions into group-level structural traits. Passing this vector of structural traits into a second-stage EM loop yields distinct weights for each level, effectively quantifying the empirical discriminatory power of each mathematical lens based on the observed distribution of global entities versus accidental data noise.
+
+
+We consider two major benefits to utilising this design, despite violating Conditional Independence:
+
+\paragraph{Beneficial Double-Counting (Probabilitive Voting):} In traditional record linkage, violating conditional independence in attributes can aggressively drive scores to the extremes ($0.0$ or $1.0$). Treating matches on two correlated fields as miraculous evidence inflates match weights. Matches on postal code and addresses should not be treated as independent evidence.
+
+However, a true, structurally sound cluster will simultaneously clear the mathematical bars for multiple independent traits. Matches on multiple aggregation functions \textit{should be much stronger evidence} that two entities are the same. The resulting amplified weight acts as a \textit{probabilistic voting mechanism}, handing true matches a massive cumulative bonus while rapidly penalising noisy, accidental links that fail to satisfy all lenses simultaneously.
+
+\paragraph{Prioritisation of Ranking Over Absolute Calibration:} For operational notes, the primary goal of the engine is discrimination power rather than exact statistical calibration. While the CI violation uncalibrates the absolute probabilities into a highly bimodal distribution, it generally preserves the overall \textbf{ranking order} of the data. By widening the geometric gap between legitimate entity structures and chaotic random matches, this approach would establish a clean, unambiguous operational threshold boundary.
+
+\textit{Implementation Note:} This hierarchical approach remains strictly as a secondary option. If an ideal, clear aggregation function is available, it should be used instead to maintain strict mathematical independence.
+
+
+% --- 2.4 FRAMEWORK 2: PROFILE AGGREGATION ---
+\subsection{Framework 2: Profile Aggregation (Behavioural Profile Matching)}
+\label{sec:profile_aggregation}
+
+This framework shifts the local-to-global transition \textit{upstream}: it \textbf{aggregates records into profiles first}, then matches profiles with the \fellegisunter{} model.
+
+\subsubsection{Behavioural Profile Construction}
+\label{sec:profile_construction}
+
+For each \globalentity{} $e$ with records $R(e) = \{r_1, \dots, r_k\}$, a \textbf{profile vector} $\mathbf{v}_e$ is constructed via an \texttt{Aggregator}:
+
+\begin{equation}
+	\mathbf{v}_e = \text{Agg}\left( \{ \phi(r) : r \in R(e) \} \right)
+\end{equation}
+
+where $\phi(r)$ extracts features from a single record, and $\text{Agg}$ is a per-feature aggregation operator. The \texttt{aggregation} package (\texttt{em/aggregation/}) implements this with a \texttt{ProcessorRegistry} mapping feature types to \texttt{ColumnProcessor} subclasses:
+
+\begin{itemize}
+	\item \textbf{Numerical} $\to$ moments: $\{\text{mean}, \text{min}, \text{max}\}$ for range overlap comparison.
+	\item \textbf{Set-valued (Categorical and DateTime)} $\to$ union of tokens across records.
+	\item \textbf{Frequency Vectors (Categorical and DateTime)} $\to$ frequency vectors for Soft Jaccard / Monge-Elkan / Simpson / Mag-Cosine. Can quickly explode in dimensionality. \citep{winkler1989frequency}
+\end{itemize}
+
+The output is a fixed-dimensional profile per entity.
+
+\subsubsection{Profile Matching: Set Similarity on Profiles}
+\label{sec:profile_matching}
+
+Given profiles $\mathbf{v}_A, \mathbf{v}_B$ for entities $e_A, e_B$, per-dimension similarities form a feature vector:
+
+\begin{align}
+	x_d        & = \text{sim}_d(v_{A,d}, v_{B,d}), \quad d = 1 \dots D \\
+	\mathbf{x} & = (x_1, \dots, x_D)
+\end{align}
+
+where $\text{sim}_d$ are the soft set metrics (Soft Jaccard, Monge-Elkan, Simpson, Mag-Cosine, Range Overlap) applied per profile dimension $d$.
+
+\subsubsection{Applying Splink to Profile Vectors}
+\label{sec:profile_splink}
+
+A \fellegisunter{} model is trained on these global-pair features:
+
+\begin{itemize}
+	\item \textbf{Input}: DataFrame with one row per global entity pair, columns $x_1 \dots x_D$.
+	\item \textbf{Blocking}: Use a high-recall profile similarity (e.g., Soft Jaccard $\ge 0.3$) as blocking key.
+	\item \textbf{EM Estimation}: Same procedure; each ``record'' is now a global entity pair.
+	\item \textbf{Output}: Calibrated global match probability $\mathbb{P}(M \mid \mathbf{x})$.
+\end{itemize}
+
+% --- 2.4.x SET SIMILARITY COMPARISON FUNCTIONS ---
+\subsubsection{Set Similarity Comparison Functions}
+\label{sec:set_similarities}
+
+For set-valued fields (tokenised titles, year lists, categorical number lists) the set similarity metrics are fundamentally \textbf{intersection-over-union variants}: compute a ``soft intersection'' by summing continuous match scores instead of exact token matches, then normalise by various denominator forms (union, sum, min). We implement four metrics in DuckDB SQL (\Cref{annex:set_similarities_full}):
+
+Let $L$ and $R$ be token lists. Define the directional best-match sums:
+\begin{align}
+	S_{L \to R} & = \sum_{x \in L} \max_{y \in R} \text{JW}(x,y), \\
+	S_{R \to L} & = \sum_{y \in R} \max_{x \in L} \text{JW}(x,y).
+\end{align}
+The ``soft intersection'' is $S_{L \to R} + S_{R \to L}$, replacing exact $|\text{tokens}_L \cap \text{tokens}_R|$.
+
+\begin{description}
+	\item[\textbf{Monge-Elkan (Asymmetric)}] $\text{ME}(L,R) = \dfrac{S_{L \to R}}{|L|}$. Normalises soft intersection by query size $|L|$. Query-to-reference average best-match.
+
+	\item[\textbf{Soft Jaccard (Symmetric)}] $\text{SJ}(L,R) = \dfrac{S_{L \to R} + S_{R \to L}}{2 \cdot |L \cup R|_{\text{distinct}}}$. Normalises by (distinct) union size; penalises extra tokens on either side.
+
+	\item[\textbf{Simpson (Symmetric)}] $\text{SI}(L,R) = \dfrac{S_{L \to R} + S_{R \to L}}{2 \cdot \min(|L|, |R|)}$. Normalises by twice the size of the smaller set.
+
+	\item[\textbf{Mag-Cosine (Symmetric)}] $\text{MC}(L,R) = \dfrac{S_{L \to R} + S_{R \to L}}{\sqrt{(S_{L \to L} + S_{R \to R}) \cdot (S_{L \to L} + S_{R \to R})}}$. Normalises by the geometric mean of the self-similarities.
+\end{description}
+
+For numerical fields, we use the range overlap comparison. Given two intervals $[a_1, a_2]$ and $[b_1, b_2]$, the range overlap is defined as:
+
+\begin{equation}
+	\text{RO}([a_1, a_2], [b_1, b_2]) = \frac{\max(0, \min(a_2, b_2) - \max(a_1, b_1))}{\max(a_2, b_2) - \min(a_1, b_1)}
+\end{equation}
+
+This is the Jaccard index for intervals, measuring the overlap relative to the combined span.
+\subsubsection{Numerical Range Overlap}
+\label{sec:num_range_overlap}
+
+For numerical profiles (mean/min/max from Aggregator), we use the range overlap coefficient:
+\begin{equation}
+	\text{Overlap}(A,B) = \frac{\max(0, \min(A_{\max}, B_{\max}) - \max(A_{\min}, B_{\min}))}{\max(A_{\max}, B_{\max}) - \min(A_{\min}, B_{\min})}
+\end{equation}
+measuring the fraction of the bounding box that overlaps.
+
+% % --- BLOCKING STRATEGY ---
+% \subsection{Blocking Strategy \& Recall Bounds TODO(REVIEW)}
+% \label{sec:blocking_theory}
+
+% \textit{Remark}: We utilise blocking for both frameworks. This is critical for optimising compute.
+
+% Blocking reduces the $\mathcal{O}(|A| \times |B|)$ comparison space. In Score Aggregation, blocking applies to \textit{local record pairs}; in Profile Aggregation, blocking applies to \textit{global entity pairs} (using profile features as blocking keys).
+
+% A blocking rule $B$ defines a subset of pairs to compare. The \textit{recall} of a blocking rule is:
+% \begin{equation}
+% 	\text{Recall}(B) = \frac{|\{ \text{true matches} \} \cap B|}{|\{ \text{true matches} \}|}
+% \end{equation}
+% Since true matches are unknown, we use the \textbf{strictest blocking rules} for EM initialisation:
+% \begin{enumerate}
+% 	\item Construct a conjunction of tight predicates.
+% 	\item This rule has high precision but unknown recall.
+% 	\item Use it to estimate $\pi$ for EM initialisation: $\hat{\pi} = \text{matches in strict rule} / \text{pairs in strict rule}$.
+% 	\item \textit{Rationale}: The strict rule approximates a high-precision sample of matches; if it captures even a fraction, $\hat{\pi}$ is in the right ballpark for EM convergence.
+% 	\item We compare against varying recall targets in \Cref{sec:blocking_theory}.
+% \end{enumerate}
+
+% --- BLOCKING STRATEGY ---
+\subsection{Blocking Strategy \& Parameter Estimation Pipeline}
+\label{sec:blocking_theory}
+
+\textit{Remark}: We utilise blocking for both frameworks—critical for reducing the $\mathcal{O}(|A| \times |B|)$ comparison space. In Score Aggregation, blocking applies to \textit{local record pairs}; in Profile Aggregation, it applies to \textit{global entity pairs} using profile features as keys. We discuss the core rationale for specific choices governing blocking across \splink{}'s primary operational stages.
+
+\subsubsection{Underlying Probabilities: $m$, $u$, and the Prior $\lambda$}
+From \ref{sec:fs_foundations}, we re-establish the fundamental parameters governing the \fellegisunter{} model for a comparison field $i$:
+\begin{itemize}
+	\item \textbf{m-probability ($m_i$)}: $\mathbb{P}(\text{field } i \text{ matches} \mid M)$ — the probability that a field agrees given that the record pair represents a true match ($M$). This parameter quantifies data entry error rates.
+	\item \textbf{u-probability ($u_i$)}: $\mathbb{P}(\text{field } i \text{ matches} \mid U)$ — the probability that a field agrees purely by random chance given that the record pair is a non-match ($U$). This reflects accidental data coincidences.
+	\item \textbf{Prior ($\lambda$)}: $\mathbb{P}(M)$ — the unconditional probability that two record pairs chosen completely at random from the entire population space represent a true match.
+\end{itemize}
+
+\subsubsection{Operational Blocking Stages and Mathematical Rationales}
+
+\paragraph{Stage 1: Estimating the Prior (\texttt{estimate\_probability\_two\_random\_records\_match})}
+Estimating $\lambda$ natively within an open cross-product or a loose block introduces massive mathematical distortion. In two datasets of size $N$ and $M$, the total comparison space of all possible pairs is rectangular:
+
+\begin{equation}
+	P_{\text{N,M}} = N \times M
+\end{equation}
+
+If the true match count is $M_{\text{true}}$, the true prior probability of a match is:
+
+\begin{equation}
+	\lambda = \frac{M_{\text{true}}}{P_{\text{N,M}}}
+\end{equation}
+
+, which is often extremely small.
+
+Running Expectation-Maximisation (EM) directly on this space causes the true match signal to be mathematically drowned out by non-matches. Conversely, running EM inside a loose block yields an artificially inflated local prior ($\pi_{\text{block}} \gg \lambda$). This systematic overestimation propagates through the Fellegi-Sunter equations, inflating the final match weights and causing massive false-positive rates.
+
+To resolve this "blocking bias," Splink decouples $\lambda$ from EM by utilizing \textbf{highly conservative, strict deterministic blocking rules} ($B_{\text{det}}$) where the user can safely assume a near-zero false-positive rate (e.g., exact match on \texttt{first\_name} $\cap$ \texttt{surname} $\cap$ \texttt{dob}).
+
+Let $N_{\text{det}}$ be the exact number of candidate pairs generated by $B_{\text{det}}$. Assuming these deterministic pairs represent a robust, clean empirical lower bound of true matches ($N_{\text{det}} \approx M_{\text{true}}$), the prior is directly calculated via a closed-form combinatorial ratio without relying on latent variable iteration:
+\begin{equation}
+	\lambda \approx \frac{N_{\text{det}}}{P_{\text{N,M}}} = \frac{2 \cdot N_{\text{det}}}{N(N-1)}
+\end{equation}
+
+\paragraph{Stage 2: Estimating $m$-probabilities via Expectation-Maximisation}
+Once $\lambda$ and $u_i$ are initialized, this stage relies on \textbf{strict, single-field or dual-field blocking rules} run sequentially (e.g., Run A blocks on \texttt{first\_name}; Run B blocks on \texttt{dob}). The mathematical choices here are governed by two strict constraints:
+
+\begin{enumerate}
+	\item \textbf{Information Density and EM Convergence}: Extreme class imbalance destabilizes the likelihood surface of the EM algorithm, leading to poor local minima or failure to converge. Tight blocking rules compress the denominator of the posterior probability, filtering out obvious non-matches. This yields a dense local mixture where the local block prior sits in an optimal training regime.
+	\item \textbf{The Conditional Identifiability Constraint}: If a model blocks on field $i$ (e.g., requiring \texttt{l.first\_name = r.first\_name}), the observed comparison value for field $i$ is identically $1$ for every single pair in that subpopulation. Consequently, there is zero variance in that column, making $m_i$ mathematically unidentifiable within that specific optimization run. Splink handles this by cycling blocking columns: Run A fixes field $i$ to estimate $m_{\setminus i}$, while Run B fixes field $j$ to estimate $m_i$.
+\end{enumerate}
+
+The EM algorithm treats match status $z \in \{0,1\}$ as a latent variable. For a pair $k$ within the block characterized by comparison vector $\mathbf{x}_k$:
+\begin{align}
+	\textbf{E-step:} & \quad \gamma_k         &  & = \frac{\pi_{\text{block}} L_M}{\pi_{\text{block}} L_M + (1-\pi_{\text{block}}) L_U}                                 \\[8pt]
+	\textbf{M-step:} & \quad m_i^{\text{new}} &  & = \frac{\sum_k \gamma_k x_{ki}}{\sum_k \gamma_k}, \quad \pi_{\text{block}}^{\text{new}} = \frac{1}{B}\sum_k \gamma_k \\[8pt]
+	\text{where:}    & \quad L_M              &  & = \prod_i m_i^{x_{ki}}(1-m_i)^{1-x_{ki}}, \quad L_U = \prod_i u_i^{x_{ki}}(1-u_i)^{1-x_{ki}}
+\end{align}
+where $B$ is the number of pairs in the block, $\quad L_M$ and $\quad L_U$ terms are match likelihoods.
+
+\paragraph{Stage 3: Prediction and Inference (\texttt{linker.predict()})}
+During final inference, the mathematical objective flips completely from parameter optimization to \textbf{maximizing the global recall bound}. Splink requires an array of \textbf{multiple, separate, overlapping blocking rules} evaluated as an inclusive disjunction ($\bigvee B_m$).
+
+\begin{enumerate}
+	\item \textbf{Typo Redundancy via Disjunctive Paths}: True matches often can, and will, fail any single strict blocking rule. If a true match contains a typo in the surname, it will violate $B_1$ (\texttt{surname} equality) but will be captured by $B_2$ (\texttt{dob} $\cap$ \texttt{postcode} equality). The total recall of the prediction space is bounded by the union of the rules:
+		      \begin{equation}
+			      \text{Recall}\left(\bigcup_{m=1}^{M} B_m\right) \ge \text{Recall}(B_m) \quad \forall m
+		      \end{equation}
+	\item \textbf{Computational Complexity and Join Optimization}: A single complex SQL query with internal \texttt{OR} statements forces database engines into a slow nested-loop join scaling at $\mathcal{O}(N^2)$. Splink circumvents this by splitting the logic into independent equi-join rules. This allows the engine to utilize fast linear-time \textbf{Hash Joins} scaling at $\mathcal{O}(N)$ lookup complexity. The separate outputs are then unified to compute the final Fellegi-Sunter log-odds weight:
+		      \begin{equation}
+				      W = \log_2\left(\frac{\lambda}{1-\lambda}\right) + \sum_i \log_2 \left( \frac{m_i}{u_i} \right)
+		      \end{equation}
+\end{enumerate}
+
+% --- TODO() find a place to send this nonsense over ---
+% \subsection{Implementation: \splink{} Extensions}
+% \label{sec:splink_implementation}
+
+% \splink{} \cite{splink2024} implements \fellegisunter{} with pragmatic extensions:
+% \begin{enumerate}
+% 	\item \textbf{SQL-based comparisons}: DuckDB/SQLite/PostgreSQL/Spark SQL for parallel execution.
+% 	\item \textbf{Blocking rules as SQL}: Declarative blocking with cumulative comparison charts.
+% 	\item \textbf{Custom comparison levels}: \texttt{JaroWinklerLevel}, \texttt{PercentageDifferenceLevel}, \texttt{WithinNDaysLevel}, \texttt{CustomComparison} (for set similarities).
+% 	\item \textbf{Retained intermediate columns}: Gamma values, Bayes factors, raw comparison outputs.
+% 	\item \textbf{Evaluation without labels}: Clerical labels table; threshold selection charts.
+% \end{enumerate}
+
+% \subsection{Profile Aggregation Engine}
+% \label{sec:agg_engine}
+
+% The \texttt{aggregation} package implements the Profile Aggregation framework:
+% \begin{itemize}
+% 	\item \textbf{ProcessorRegistry}: Maps type strings (\texttt{"numerical"}, \texttt{"categorical"}, \texttt{"set\_union"}) to \texttt{ColumnProcessor} subclasses.
+% 	\item \textbf{ColumnProcessor} (abstract base): \texttt{get\_agg\_func()}, \texttt{fit\_vocab(df1, df2)}, \texttt{post\_process(df\_agg)}.
+% 	\item \textbf{Aggregator}: \texttt{fit(df1, df2)} builds vocabularies; \texttt{transform(df, label)} groups by \texttt{unique\_id\_col}, applies agg funcs, runs post-processors.
+% \end{itemize}
+
+% Usage in \texttt{agg\_music.ipynb}:
+% \begin{lstlisting}[language=Python, caption={Aggregator Instantiation for Music Data}, label=lst:agg_music_framework]
+% type_groups = ["numerical", "categorical", "set_union"]
+% col_groups = [
+%     ["numerical_noisy"],
+%     ["categorical_title", "categorical_album", "language", "categorical_number"],
+%     ["year_options"]
+% ]
+% agg = Aggregator(type_groups=type_groups, col_groups=col_groups, unique_id_col="artist")
+% agg.fit(df1_processed, df2_processed)
+% aggregated_df1 = agg.transform(df1_processed, "music_catalog_df1")
+% aggregated_df2 = agg.transform(df2_processed, "music_catalog_df2")
+% \end{lstlisting}

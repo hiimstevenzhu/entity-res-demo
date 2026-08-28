@@ -1,0 +1,95 @@
+% ============================================================
+% Annex F: Artist Matching Ground Truth and Precision/Recall Guarantees
+% ============================================================
+\section{Artist Matching Ground Truth and Precision/Recall Guarantees}
+\label{annex:artist_matching}
+
+\subsection{Subset Precision is a Lower Bound on True Precision}
+
+Let $G_{true}$ be the total hidden ground truth of true matches, $G_{sub}$ be the trusted subset where $G_{sub} \subseteq G_{true}$, and $M$ be the set of matches predicted by the model.
+
+The true precision and the subset precision are defined as:
+\[
+\text{Precision}_{true} = \frac{|M \cap G_{true}|}{|M|}
+\]
+\[
+\text{Precision}_{sub} = \frac{|M \cap G_{sub}|}{|M|}
+\]
+
+Since the trusted subset is a subset of the total true matches:
+\[
+G_{sub} \subseteq G_{true}
+\]
+
+By the monotonicity of set intersections, intersecting both sides with the model predictions $M$ yields:
+\[
+(M \cap G_{sub}) \subseteq (M \cap G_{true})
+\]
+
+Taking the cardinality (size) of both sets preserves the inequality:
+\[
+|M \cap G_{sub}| \leq |M \cap G_{true}|
+\]
+
+Dividing both sides by the strictly positive total number of model predictions $|M|$ gives:
+\[
+\frac{|M \cap G_{sub}|}{|M|} \leq \frac{|M \cap G_{true}|}{|M|}
+\]
+
+Substituting the original definitions completes the proof:
+\[
+\text{Precision}_{sub} \leq \text{Precision}_{true} \quad \blacksquare
+\]
+
+\subsection{Artist Matching Prior and Recall Estimation under Clustered Noise}
+
+Let $\mathcal{M}$ be the global set of true matches, $\mathcal{S}_{\text{clean}}$ be the exact artist match subset, and $\mathcal{A}$ be the model predictions. We isolate two distinct fractional components within our evaluation framework:
+
+\begin{equation}
+p = \frac{|\mathcal{M} \cap \mathcal{S}_{\text{clean}}|}{|\mathcal{S}_{\text{clean}}|} \quad \text{(The True Match Prior / Prevalence Proportion)}
+\end{equation}
+
+\begin{equation}
+q = \frac{|\mathcal{A} \cap \mathcal{M} \cap \mathcal{S}_{\text{clean}}|}{|\mathcal{M} \cap \mathcal{S}_{\text{clean}}|} \quad \text{(The Subset Capturing Success Rate / Estimated Recall } \widehat{R}_{\text{eval}}\text{)}
+\end{equation}
+
+\subsubsection{Preservation of the True Match Prior ($p$)}
+Because the artificial noising process on the artist column is uniform and random, the clean-artist property $\mathcal{S}_{\text{clean}}$ is statistically independent of the true latent matching state $\mathcal{M}$:
+\begin{equation}
+\mathcal{S}_{\text{clean}} \perp \!\! \perp \mathcal{M} \implies \frac{|\mathcal{S}_{\text{clean}} \cap \mathcal{M}|}{|\mathcal{M}|} = \frac{|\mathcal{S}_{\text{clean}}|}{|\mathcal{P}|}
+\end{equation}
+
+By re-arranging the terms, we formally prove that your baseline proportion $p$ matches global reality:
+\begin{equation}
+p = \frac{|\mathcal{M} \cap \mathcal{S}_{\text{clean}}|}{|\mathcal{S}_{\text{clean}}|} = \frac{|\mathcal{M}|}{|\mathcal{P}|} = p_{\text{global}}
+\end{equation}
+
+\subsubsection{Clustered Noise and Captured Predictive Inflation ($q$)}
+Let $\mathcal{Q} \in \{0, 1\}$ be a latent data quality indicator, where $\mathcal{Q} = 1$ represents uncorrupted records. 
+
+In real-world data streams, data quality naturally travels in systemic clusters across columns:
+\begin{equation}
+\text{Quality(Song Features)} \not\perp \!\! \perp \text{Quality(Artist Name)}
+\end{equation}
+
+Therefore, pulling record pairs into $\mathcal{S}_{\text{clean}}$ drastically forces the latent quality state $\mathcal{Q} \to 1$:
+\begin{equation}
+\frac{|\mathcal{S}_{\text{clean}} \cap \{\mathcal{Q}=1\}|}{|\mathcal{S}_{\text{clean}}|} \gg \frac{|\{\mathcal{Q}=1\}|}{|\mathcal{P}|}
+\end{equation}
+
+Let $\mathcal{X}$ represent the song features used by your model. The model's prediction success depends on $\mathcal{Q}$:
+\begin{equation}
+\left( \frac{|\mathcal{A} \cap \mathcal{M} \cap \{\mathcal{Q}=1\}|}{|\mathcal{M} \cap \{\mathcal{Q}=1\}|} \right) \gg \left( \frac{|\mathcal{A} \cap \mathcal{M} \cap \{\mathcal{Q}=0\}|}{|\mathcal{M} \cap \{\mathcal{Q}=0\}|} \right)
+\end{equation}
+
+Expanding your subset success rate $q$ over the hidden data quality distribution reveals the inflation:
+\begin{equation}
+q = \underbrace{\left( \frac{|\mathcal{A} \cap \mathcal{M} \cap \mathcal{S}_{\text{clean}} \cap \{\mathcal{Q}=1\}|}{|\mathcal{M} \cap \mathcal{S}_{\text{clean}} \cap \{\mathcal{Q}=1\}|} \right)}_{\text{Artificially maximized success rate}} \cdot \left( \frac{|\mathcal{M} \cap \mathcal{S}_{\text{clean}} \cap \{\mathcal{Q}=1\}|}{|\mathcal{M} \cap \mathcal{S}_{\text{clean}}|} \right) + \epsilon
+\end{equation}
+
+Because the weight of the pristine $\{\mathcal{Q}=1\}$ records is highly concentrated inside your evaluation set:
+\begin{equation}
+q \gg \frac{|\mathcal{A} \cap \mathcal{M}|}{|\mathcal{M}|} = R_{\text{global}}
+\end{equation}
+
+\textbf{Conclusion 2:} The model captures a significantly higher proportion of positives inside this subset than globally.

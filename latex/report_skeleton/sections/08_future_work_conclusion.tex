@@ -1,0 +1,100 @@
+% ============================================================
+% 8. Future Work \& Conclusion
+% ============================================================
+\section{Future Work \& Conclusion}
+\label{sec:conclusion}
+
+\subsection{Future Work}
+\label{sec:future_work}
+
+\subsubsection{1. Automated Threshold Selection via Mixture Models}
+\label{sec:future_mixture}
+Currently, the decision threshold is selected by maximising $F_1$ on a clerical sample (synthetic) or via heuristic (public).
+A mixture model on the match weight distribution can automate this:
+\begin{equation}
+	f(w) = \pi_M \mathcal{N}(w; \mu_M, \sigma_M^2) + (1-\pi_M) \mathcal{N}(w; \mu_U, \sigma_U^2)
+\end{equation}
+Fit via EM on the observed $w$ (no labels needed). The optimal threshold is the intersection point of the two components.
+This removes the need for any labelled data for threshold selection.
+
+\subsubsection{Further exploration into hierarchical probabilistic linkage}
+\label{sec:future_hierarchical_splink}
+Extend the approach for hierachical probabilistc linkage mentioned in~\ref{sec:exp_hierarchical}.
+
+The hierarchical, two-stage probabilistic linkage engine introduced in Section~\ref{sec:exp_hierarchical} provides an operational voting mechanism by passing group-level aggregation scores as an input vector ($\mathbf{x} = [x_1, x_2, \dots, x_D]$) into a secondary Fellegi-Sunter loop. However, violating independence causes standard Expectation-Maximisation pipelines to "double-count" evidence, aggressively flattening the posterior calibration boundaries into artificial extremes ($0.0$ or $1.0$).
+
+Future work could consider replacing the independent product-space distribution with an explicit \textit{Log-Linear Graphical Interaction Model} \citep{thibaudeau1993discrimination, winkler1993improved}. 
+
+Switching the parameter estimation loop should balance the cumulative advantage of probabilistic voting, while protecting calibration. While computational complexity is of consideration, given some small, fixed number of fields (aggregation functions), the shift in computation should be negligible in effect.
+
+\subsubsection{Active Learning \& Label Minimisation}
+\label{sec:future_active}
+Recent literature \cite{mozafari2025active, rough2024minimal, binette2022almost} suggests that as few as 30--50 labelled pairs can effectively calibrate the \fellegisunter{} model and select thresholds.
+Future work:
+\begin{itemize}
+	\item Implement uncertainty sampling (max entropy) or diversity sampling on the match weight space.
+	\item Benchmark label efficiency: $F_1$ vs number of clerical labels across datasets.
+	\item Integrate with \splink{}'s \texttt{label\_studio} or custom active learning loop.
+\end{itemize}
+
+\subsubsection{Multi-Source (K $>$ 2) Global Resolution}
+\label{sec:future_multisource}
+Extend the global layer to $K$ datasets:
+\begin{itemize}
+	\item Star schema: one ``reference'' source, $K-1$ others linked to it.
+	\item Clique schema: all pairwise links, then transitive closure.
+	\item Consensus aggregation: $\mathcal{A}(W^{(1)}, \dots, W^{(K)})$ where $W^{(k)}$ is local scores vs reference.
+	\item Constraint: Transitive consistency (if A=B and B=C then A=C) — currently not enforced.
+\end{itemize}
+
+\subsubsection{Distributed \splink{} on Spark for Scale}
+\label{sec:future_distributed}
+\splink{} supports Spark backend. Test on:
+\begin{itemize}
+	\item \texttt{large} config (100K+ entities, high cardinality).
+	\item Blocking rule parallelism.
+	\item \emalgo{} convergence in distributed setting.
+\end{itemize}
+
+\subsubsection{Temporal Entity Resolution}
+\label{sec:future_temporal}
+Entities evolve: attributes change over time (name change, address move). Current model assumes static attributes.
+Approaches:
+\begin{itemize}
+	\item Time-decay in $m$-probabilities (recent matches more reliable).
+	\item State-space model: latent entity attributes evolve; observations are noisy emissions.
+	\item Incremental \emalgo{}: update parameters as new data arrives.
+\end{itemize}
+
+\subsubsection{Semantic Augmentation (LLM Hybrid)}
+\label{sec:future_llm}
+While this work scopes out LLM matching, a hybrid is compelling:
+\begin{itemize}
+	\item Use LLM embeddings as additional comparison fields in \splink{} (treated as categorical/vector).
+	\item LLM for blocking: generate blocking keys from semantic understanding.
+	\item LLM for active learning: generate hard negative examples for training.
+\end{itemize}
+
+\subsection{Conclusion}
+\label{sec:conclusion_final}
+
+This report presented a hybrid entity resolution framework combining \textbf{local probabilistic matching} (\fellegisunter{} via \splink{}) with \textbf{global aggregation} (scalar and vector-space).
+
+\paragraph{Key findings:}
+\begin{enumerate}
+	\item The \fellegisunter{} model with \emalgo{} estimation, implemented in \splink{}, provides a principled and practical local matching layer under unsupervised constraints.
+	\item Blocking rule design with recall-bounding is the critical engineering lever; the ``strictest rules'' $\pi$ initialisation heuristic is robust across configs.
+	\item Global aggregation is necessary when entities have multiple records per source. Scalar aggregations (mean, max, noisy-OR) have distinct regimes of validity; vector-space profile aggregation + profile-based \splink{} adds complexity but requires a profile-able structure in data.
+	\item At low cardinality, the local matching breaks down due to low discriminatory factors between pairs. The proposed profile-based \splink{}, over aggregating low-entropy aggregation scores, a promising direction.
+	\item On real-world data, the framework achieves competitive performance metrics without any labelled training data.
+\end{enumerate}
+
+\paragraph{The framework is characterised by:}
+\begin{itemize}
+	\item \textbf{Explicit assumptions}: Conditional independence, stable within-dataset IDs, attribute-type scope.
+	\item \textbf{Interpretable outputs}: Match weights decompose into per-field contributions.
+	\item \textbf{Configurable trade-offs}: Blocking recall vs compute; aggregation method vs cardinality regime; threshold vs precision/recall.
+	\item \textbf{Extensible architecture}: New comparison levels, aggregation functions, and layers compose cleanly.
+\end{itemize}
+
+The codebase (\texttt{generate\_data.py}, \texttt{data\_generator/}, \texttt{em/}, \texttt{aggregation/}) provides a reproducible foundation for further research on scalable, unsupervised entity resolution.

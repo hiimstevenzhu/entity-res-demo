@@ -1,0 +1,458 @@
+% ============================================================
+% 5. Experimental Results \& Discussion
+% ============================================================
+\section{Experimental Results \& Discussion}
+\label{sec:results}
+
+\subsection{Experiment 1: \texttt{base} Synthetic Dataset - \texttt{splink\_local\_demo.ipynb}}
+\label{sec:exp_smaller}
+\subsubsection{Dataset Description}
+This dataset consists of two tables with approximately 3,300 and 3,700 records, generated with 50 entities each, 10\% overlap, and 70/80 records per entity (A/B). It serves as our primary artificial dataset for evaluating the Splink pipeline while maintaining computational tractability.
+\subsubsection{Blocking Rules Design}
+\label{sec:blocking_rules_exp1}
+The blocking rules target orthogonal signals to bound recall while reducing the comparison space. Each rule is a disjunctive condition that allows matches when the attribute agrees or when data is missing on either side.
+The four blocking rules used are:
+\begin{enumerate}
+    \item Categorical equality or missing
+    \item Numerical within 25\% or missing
+    \item Date within +1 day or missing
+    \item Date within -1 day or missing
+\end{enumerate}
+(See notebooks for the exact SQL predicates.)
+\subsubsection{Comparison Levels}
+\label{sec:comparison_levels_exp1}
+Each field is modeled with a \texttt{CustomComparison} using binned levels that capture gradations of similarity. The levels are chosen to reflect the noise models used in synthetic data generation.
+
+For the numerical field, we use PercentageDifferenceLevel bins at 5\%, 10\%, 25\%, and 50\%.
+For the categorical field, we use ExactMatchLevel.
+For the datetime field, we use WithinNDaysLevel bins at 0 days (same day), 1 day, and 5 days.
+For the textual name fields, we use Jaro-Winkler bins at 0.8, 0.5, 0.3.
+(See notebooks for full specification.)
+\subsubsection{Local Pairwise Matching Results}
+\begin{itemize}
+    \item \textbf{Match weight chart:} Figure~\ref{fig:match_weights_smaller} displays the m‑probability, u‑probability, bayes factor, and log2 bayes factor for each comparison level. This chart reveals which comparisons contribute most to the match weight.
+    \item \textbf{Threshold selection curve:} Figure~\ref{fig:threshold_curve_smaller} shows precision, recall, and F1 score as functions of the match probability threshold. The curve illustrates the trade-off between precision and recall across different threshold values.
+\end{itemize}
+
+% Add figures for the small dataset
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_demo/match_weights_chart.png}
+    \caption{Match weights chart showing m-probability, u-probability, bayes factor, and log2 bayes factor for each comparison level in the small synthetic dataset.}
+    \label{fig:match_weights_smaller}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_demo/threshold_curve.png}
+    \caption{Threshold selection curve showing precision, recall, and F1 score as functions of the match probability threshold for the small synthetic dataset. The curve illustrates the trade-off between precision and recall across different threshold values.}
+    \label{fig:threshold_curve_smaller}
+\end{figure}
+
+\subsubsection{Threshold Selection and Results}
+The intent behind threshold selection in these experiments is not to find an \textit{optimal} threshold, but to ensure as large a \textbf{range of values} that would be considered \textit{acceptable performances}. This is identical to spreading the gap between probabilities. 
+
+\subsubsection{Local matching - Discussion}
+We notice from the match weights that the model seems to lean towards \textit{heavy penalties} on mismatches over rewarding matches. Mismatches in numerical columns and the datetime are immediately penalised heavily. 
+
+Intuitively - these comparison-level mismatches are considered as effectively \textit{equivalent} to a complete record mismatch.
+\subsubsection{Blocking Efficiency}
+With the same blocking rules, the number of comparisons after blocking is reduced from the full cartesian product of ~3.48 million to 1,394,506.
+
+\subsubsection{Local-to-Global Aggregation Analysis}
+We apply local-to-global aggregation techniques to the base dataset by constructing entity pairs and computing various aggregation strategies that align with the theoretical framework taxonomy in Section~\ref{sec:framework}. Specifically, we implement:
+\begin{itemize}
+    \item \textbf{Match density} (\texttt{sum\_p}) - see Section~\ref{sec:agg_functions}
+    \item \textbf{Max-Over-Partitions} (\texttt{max\_w}) - see Section~\ref{sec:agg_functions}
+    \item \textbf{Noisy-OR} (\texttt{score\_noisy\_or}) - see Section~\ref{sec:agg_functions}
+    \item \textbf{Vector-Space-inspired} (\texttt{top\_3\_mean\_w}, \texttt{score\_softmax\_p}) - see Section~\ref{sec:agg_functions}
+    \item \textbf{Weighted Jaccard} (\texttt{weighted\_jaccard}) - see Section~\ref{sec:agg_functions}
+    \item \textbf{Weighted Overlap} (\texttt{weighted\_overlap}) - see Section~\ref{sec:agg_functions}
+    \item \textbf{Score-probability expected ratio} (\texttt{score\_prob\_expected\_ratio}) - see Section~\ref{sec:agg_functions}
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_demo/aggregation_score_heatmaps.png}
+    \caption{Aggregation score heatmaps showing various aggregation strategies (sum, max, top-k mean, noisy-or, softmax, match density, weighted Jaccard, weighted overlap, score-probability expected ratio) between entities in the base synthetic dataset, demonstrating the theoretical framework's aggregation functions in practice.}
+    \label{fig:aggregation_heatmaps_base}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_demo/threshold_evaluation_binned.png}
+    \caption{Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the base synthetic dataset, demonstrating performance across the theoretical framework's aggregation functions.}
+    \label{fig:threshold_evaluation_base}
+\end{figure}
+
+% Discussion of results would go here, comparing baseline vs aggregation performance
+\subsubsection{Global Aggregation - Discussion}
+We term the threshold curves for each aggregation function as \textit{profiles}. We note that for a few of the profiles, namely the weighted Jaccard and the weighted overlap, the profile is generally stable - the recall and precision are not volatile. Furthermore, the scores on these functions are also exceptional - at recall 1.0 and precision 1.0 for a large range of these values.
+
+\subsection{Experiment 2: Synthetic Dataset Variants}
+\label{sec:exp_variants}
+To understand how specific dataset characteristics affect matching quality and computational efficiency, we created several variants of the synthetic dataset by modifying single parameters while keeping the Splink configuration constant. This allows us to isolate the impact of each factor.
+\subsubsection{Variant Overview}
+\begin{itemize}
+    \item \texttt{smallest}: This dataset consists of two tables with approximately 3,300 and 3,700 records, generated with 50 entities each, 10\% overlap, and 30/35 records per entity.
+    \item \texttt{low\_card}: 100 entities each, 10\% overlap, 5/5 records per entity (low intra-entity variation)
+    \item \texttt{o50}: 50 entities each, 50\% overlap, 30/35 records per entity
+\end{itemize}
+\subsubsection{Configuration}
+All variants use the identical Splink configuration as Experiment~1 (same four blocking rules and three comparisons).
+\subsubsection{Results Summary}
+Each variant's results and metrics are to be extracted from their respective notebooks:
+\begin{itemize}
+    \item \texttt{splink\_local\_smallest.ipynb} (smallest)
+    \item \texttt{splink\_low\_card.ipynb} (low\_card)
+    \item \texttt{splink\_o50.ipynb} (o50)
+\end{itemize}
+
+\subsubsection{Intent}
+The variant experiments reveal how different dataset characteristics influence the EM algorithm's convergence and the final matching quality:
+\begin{itemize}
+    \item \textbf{Overlap percentage}: Higher overlap (as in \texttt{o50}) introduces an error in the estimated prior - we show that selection via \textit{ranking} still maintains performance.
+    \item \textbf{Entity count}: Increasing entities (as in \texttt{smallest} against \texttt{base}) improves estimation stability but increases computational cost.
+    \item \textbf{Cardinality}: Higher intra-entity variation (as in \texttt{base} against \texttt{low\_card}) improves discrimination at every level.
+\end{itemize}
+
+\subsubsection{smallest Variant}
+\label{sec:exp_smallest}
+\paragraph{Dataset Description}
+The smallest variant has 50 entities each, 10\% overlap, and cardinality 30/35 per entity.
+
+\paragraph{Results}
+Figures~\ref{fig:match_weights_smallest} and~\ref{fig:threshold_curve_smallest} show the match weights and threshold selection curve for this variant.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_smallest/match_weights_chart.png}
+    \caption{Match weights chart for the smallest variant (50 entities, 10\% overlap, 30/35 cardinality).}
+    \label{fig:match_weights_smallest}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_smallest/threshold_curve.png}
+    \caption{Threshold selection curve for the smallest variant.}
+    \label{fig:threshold_curve_smallest}
+\end{figure}
+
+\subsubsection{Local-to-Global Aggregation Analysis}
+We apply identical local-to-global aggregation techniques to the smallest variant dataset.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_smallest/aggregation_score_heatmaps.png}
+    \caption{Aggregation score heatmaps showing various aggregation strategies (sum, max, top-k mean, noisy-or, softmax, match density, weighted Jaccard, weighted overlap, score-probability expected ratio) between entities in the smallest variant dataset, demonstrating the theoretical framework's aggregation functions in practice.}
+    \label{fig:aggregation_heatmaps_smallest}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_smallest/threshold_evaluation_binned.png}
+    \caption{Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the smallest variant dataset, demonstrating performance across the theoretical framework's aggregation functions.}
+    \label{fig:threshold_evaluation_smallest}
+\end{figure}
+
+\paragraph{Discussion}
+We notice that without the textual name columns, our model performs significantly worse on pairwise matching. Most of these comparison matches are still susceptible to coincidental matches, which result in lower match weights even on matches.
+
+We penalise heavily, as expected, on mismatches as we have previously, but the lack of more
+discriminatory columns affected local matching significantly.
+
+However, when extended to the global aggregate scores, our performance, while indeed poorer,
+still retains a satisfiable level of stability. In particular, weighted Jaccard and weighted overlaps retain similar profiles to that of the base variant.
+
+\subsubsection{low\_card Variant}
+\label{sec:exp_low_card}
+\paragraph{Dataset Description}
+The low\_card variant has 100 entities each, 10\% overlap, and cardinality 5/5 per entity (low intra-entity variation).
+
+\paragraph{Results}
+Figures~\ref{fig:match_weights_low_card} and~\ref{fig:threshold_curve_low_card} show the match weights and threshold selection curve for this variant.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_low_card/match_weights_chart.png}
+    \caption{Match weights chart for the low\_card variant (100 entities, 10\% overlap, 5/5 cardinality).}
+    \label{fig:match_weights_low_card}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_low_card/threshold_curve.png}
+    \caption{Threshold selection curve for the low\_card variant.}
+    \label{fig:threshold_curve_low_card}
+\end{figure}
+
+\subsubsection{Local-to-Global Aggregation Analysis}
+We apply identical local-to-global aggregation techniques to the low\_card variant dataset.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_low_card/aggregation_score_heatmaps.png}
+    \caption{Aggregation score heatmaps showing various aggregation strategies (sum, max, top-k mean, noisy-or, softmax, match density, weighted Jaccard, weighted overlap, score-probability expected ratio) between entities in the low\_card variant dataset, demonstrating the theoretical framework's aggregation functions in practice.}
+    \label{fig:aggregation_heatmaps_low_card}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_low_card/threshold_evaluation_binned.png}
+    \caption{Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the low\_card variant dataset, demonstrating performance across the theoretical framework's aggregation functions.}
+    \label{fig:threshold_evaluation_low_card}
+\end{figure}
+
+\paragraph{Discussion}
+We find that the previous discussion from \ref{sec:exp_smallest} finds its extremes here. Most comparisons are weakly discriminatory in nature, and we find that the model is unable to discriminate matches from noise.
+
+Cardinality contributes to the discriminatory effect of Fellegi-Sunter. Here, we only have a total of 8 possible comparison vectors across the entire pair space, which creates little granularity for the necessary discriminatory effect.
+
+This instability extends to the aggregation functions as well - the profiles on most, if not all, of the aggregation functions do not seem viable for stable use.
+
+\subsubsection{o50 Variant}
+\label{sec:exp_o50}
+\paragraph{Dataset Description}
+The o50 variant has 50 entities each, 50\% overlap, and cardinality 30/35 per entity (high prior match probability).
+
+\paragraph{Results}
+Figures~\ref{fig:match_weights_o50} and~\ref{fig:threshold_curve_o50} show the match weights and threshold selection curve for this variant.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_o50/match_weights_chart.png}
+    \caption{Match weights chart for the o50 variant (50 entities, 50\% overlap, 30/35 cardinality).}
+    \label{fig:match_weights_o50}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_o50/threshold_curve.png}
+    \caption{Threshold selection curve for the o50 variant.}
+    \label{fig:threshold_curve_o50}
+\end{figure}
+
+\subsubsection{Local-to-Global Aggregation Analysis}
+We apply identical local-to-global aggregation techniques to the o50 variant dataset.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_o50/aggregation_score_heatmaps.png}
+    \caption{Aggregation score heatmaps showing various aggregation strategies (sum, max, top-k mean, noisy-or, softmax, match density, weighted Jaccard, weighted overlap, score-probability expected ratio) between entities in the o50 variant dataset, demonstrating the theoretical framework's aggregation functions in practice.}
+    \label{fig:aggregation_heatmaps_o50}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_local_o50/threshold_evaluation_binned.png}
+    \caption{Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the o50 variant dataset, demonstrating performance across the theoretical framework's aggregation functions.}
+    \label{fig:threshold_evaluation_o50}
+\end{figure}
+
+\paragraph{Discussion}
+We find that the local matching performance of the model is somewhat similar to that of the smallest variant - albeit more granular. We attribute this step up due to having more ground truths.
+
+We notice that the effect of wrongly estimating the recall when estimating the prior has little
+noticeable effects on model performance.
+
+This is further shown when we extend to the aggregation functions - some of the threshold curves
+retain their profile, namely the weighted Jaccard and weighted overlap.
+
+\subsection{Experiment 3: Public Dataset Validation: MusicBrainz}
+\label{sec:exp_musicbrainz}
+\subsubsection{Description}
+This experiment can be found in \texttt{splink\_music.ipynb} and \texttt{splink\_music\_agg.ipynb}.
+
+Two snapshots of the MusicBrainz dataset (catalog 3 vs catalog 5), each with approximately 3,900 and 3,800 artists (multi-record per entity). Attributes: title (set), album (set), track number (set), length (numeric), language (set), year (set).
+\subsubsection{Configuration}
+We block on at least one intersecting track number; comparison levels include soft Jaccard on title/album, Simpson on track number, year overlap, and numerical range overlap on length. The EM algorithm converges with 4 training rules.
+
+Specifically, blocking rules are:
+\begin{enumerate}
+    \item Same Artist AND Same Track Number
+    \item Same Track Number AND Same Title Prefix (Extended to 6 characters)
+    \item Exact Artist Match AND Title Prefix Match (first 4 characters)
+\end{enumerate}
+Comparison levels include:
+\begin{itemize}
+    \item Artist: Null, ExactMatch, JaroWinkler (threshold 0.88), Else
+    \item Title Lexical: Null, ExactMatch, Prefix condition (title\_l LIKE title\_r || '%' OR title\_r LIKE title\_l || '%'), JaroWinkler (0.90), Else
+    \item Title Tokens: Null, Jaccard (0.80), Jaccard (0.55), Else
+    \item Album: Null, ExactMatch, Album truncation match, Else
+    \item Length: Null, Length within 15\%, Length within 40\%, Else
+    \item Year: Standardized year list check using clean native DuckDB list operations (levels to be defined)
+    \item Track Number: ExactMatch
+\end{itemize}
+
+\subsubsection{Blocking Efficiency}
+The Cartesian product yields 15,028,728 comparisons. After applying the three blocking rules, the number of comparisons is reduced to 1,471 (a reduction of >99.99\%). 
+
+\paragraph{Pre local-to-global matching}
+Figures~\ref{fig:match_weights_music} and~\ref{fig:threshold_curve_music} show the match weights and threshold selection curve for the baseline Splink model (no aggregation).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_music/match_weights.png}
+    \caption{Match weights chart showing m-probability, u-probability, bayes factor, and log2 bayes factor for each comparison level in the MusicBrainz dataset.}
+    \label{fig:match_weights_music}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_music/local_threshold_curve_old.png}
+    \caption{Threshold selection curve showing precision, recall, and F1 score as functions of the match probability threshold for the baseline Splink model on the MusicBrainz dataset.}
+    \label{fig:threshold_curve_music}
+\end{figure}
+\subsubsection{Local-to-Global Aggregation Analysis}
+We apply local-to-global aggregation techniques to the MusicBrainz dataset by constructing entity pairs and computing various aggregation strategies that align with the theoretical framework taxonomy in Section~\ref{sec:framework}. Specifically, we implement:
+\begin{itemize}
+    \item \textbf{Match density} (\texttt{sum\_p}) - see Section~\ref{sec:agg_functions}
+    \item \textbf{Max-Over-Partitions} (\texttt{max\_w}) - see Section~\ref{sec:agg_functions}
+    \item \textbf{Noisy-OR} (\texttt{score\_noisy\_or}) - see Section~\ref{sec:agg_functions}
+    \item \textbf{Score-probability expected ratio} (\texttt{score\_prob\_expected\_ratio}) - see Section~\ref{sec:agg_functions}
+\end{itemize}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_music/threshold_curve.png}
+    \caption{Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the MusicBrainz dataset, demonstrating performance across the theoretical framework's aggregation functions.}
+    \label{fig:threshold_evaluation_music}
+\end{figure}
+
+\subsubsection{Discussion}
+The ground truths are established as a match on the artist column, acknowledging that some artists don't actually have exact matches due to name typos (see Annex \ref{annex:artist_matching} for details on how this affects precision and recall). Under specific assumptions, we establish that precision is a definite lower bound, but recall is bounded to a fair estimate, and is likely an overestimation.
+
+The MusicBrainz results confirm that the \splink{} pipeline, and the aggregation framwork, generalizes to real-world, multi-record entity resolution scenarios. Local-to-global aggregation further enhances matching performance by leveraging distributional properties of match probabilities across record pairs.
+
+We then discuss the stability of the global aggregation profiles, suggesting viability in using \splink{} for unsupervised matching in similar scenarios.
+
+\subsection{Experiment 4: Behavioural Aggregation Experiments}
+\label{sec:exp_aggregation}
+\subsubsection{Description}
+This set of experiments builds profile vectors per global entity using numerical aggregates (mean, min, max of length) and categorical sets (title, album, language) converted to frequency vectors, then applies \splink{} to compare these profile vectors. We evaluate this approach on both our synthetic datasets (base, and low\_card) and the MusicBrainz dataset.
+
+\subsubsection{Configuration}
+The blocking rules and comparison levels are defined in the notebook they reference. General rule design concerning strictness of the blocking rules were applied. 
+
+The set comparisons are based on the attribute types (numerical, categorical, etc.) and are designed to capture similarity in the same way as the baseline experiments, but applied to the profile variables.
+
+\paragraph{Base Dataset - \texttt{agg\_eg\_normal.ipynb}}
+In this experiment, for simplicity, we do not use
+textual set-comparisons. We leverage on two key comparisons: magnitude-normalised cosine vectors, as well as the "bag" of tokens for each entity
+\subparagraph{Match weights}
+We observe that the model relies extremely heavily on penalising poor matches - the likelihood of finding an exact match on these set similarity functions become much less likely.
+
+We can build an intuition around this - the profiles of these entities are vastly different: the cosine vectors, as well as the "bag" of contents, are different. 
+
+Good matches can still be found by coincidence, but bad matches are immediately indicative, and equivalent, of a non-match overall.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_behaviour_base/match_weights.png}
+    \caption{Match weights chart for the base variant dataset.}
+    \label{fig:match_weights_base}
+\end{figure}
+
+\subparagraph{Threshold selection curve}
+The profile here is extremely stable, and suggests promising results.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_behaviour_base/threshold_curve.png}
+    \caption{Threshold selection curve for the base variant dataset. The orange dotted curve is recall, blue dashed-line is precision. Green bold line is F1.}
+    \label{fig:threshold_curve_base}
+\end{figure}
+
+
+\paragraph{Low-card Dataset - \texttt{agg\_eg.ipynb}}
+We attempt find a better solution to global entity matching in profile aggregation with the low\_card dataset.
+
+\subparagraph{Match weights}
+The discriminatory factors on some of the set comparisons are strong - the model is able to pick up on mismatches between entities.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_behaviour_low_card/match_weights.png}
+    \caption{Match weights chart for the low\_card variant dataset.}
+    \label{fig:match_weights_low_card}
+\end{figure}
+
+\subparagraph{Threshold selection curve}
+The profile is much more stable than observed from aggregation attempts.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_behaviour_low_card/threshold_curve.png}
+    \caption{Threshold selection curve for the low\_card variant dataset. The orange dotted curve is recall, blue dashed-line is precision. Green bold line is F1.}
+    \label{fig:threshold_curve_low_card}
+\end{figure}
+
+\paragraph{MusicBrainz Dataset - \texttt{agg\_music.ipynb}}
+We attempt to extend this approach to the music dataset, to explore its viability on real world datasets.
+\subparagraph{Match weights}
+We find that the model penalises only soft Simpson mismatches (< 0.4) to a high degree.
+
+Text based comparisons are difficult to configure in nature - however, the crux of the problem is that there are no indicative mismatches. We discuss this later.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_behaviour_music/match_weights.png}
+    \caption{Match weights chart for the MusicBrainz dataset.}
+    \label{fig:match_weights_music}
+\end{figure}
+
+\subparagraph{Threshold selection curve}
+The lack of confident matches (or, indicative mismatches) propogates to instability in the threshold profile.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/splink_behaviour_music/threshold_curve.png}
+    \caption{Threshold selection curve for the MusicBrainz dataset. The orange dotted curve is recall, blue dashed-line is precision. Green bold line is F1.}
+    \label{fig:threshold_curve_music}
+\end{figure}
+
+\subsubsection{Discussion}
+The core approach in behavioural aggregation is in \textit{profile matching}. In our synthetic dataset, the columns generated per row refer to a specific "event" - each of which has a unique, independent, distribution behind their generation.
+
+In the MusicBrainz dataset, the individual records are \textit{songs} - which skews the distribution of certain columns to a significant degree. The track numbers often WILL contain numbers from 1-5, and song duration distributions are often similar (2-4 minutes in length). These profiles are no longer unique - since every row is a song, every row's profile would be that \textit{of} a song.
+
+Most columns, in this case, provide effectively \textbf{no information} whatsoever to a profile match.
+
+We find that the framework, can, and often does well, match profiles - but only in the specific case that entities are \textit{uniquely profile-able}.
+
+\subsection{Experiment 5: Hierarchical 2-Layer Splink Approach}
+\label{sec:exp_hierarchical}
+\subsubsection{Description}
+This experiment explores a hierarchical approach where we first apply local \splink{} matching to generate match probabilities, then use these probabilities as features in a second-layer Fellegi-Sunter model. We demonstrate this approach using the low\_card variant as an example.
+
+\subsubsection{Configuration}
+For the first layer, we use the identical Splink configuration as Experiment~1 (same four blocking rules and three comparisons). The match probabilities from the first layer are then used as input features for the second-layer Splink model, which employs a simpler configuration focused on learning weights for combining these probabilistic signals.
+
+\subsubsection{Results}
+From \texttt{splink\_low\_card.ipynb}, we extract:
+\begin{itemize}
+    \item Hierarchical 2-layer Splink results: threshold curves showing precision, recall, and F1 scores across threshold values
+\end{itemize}
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=\textwidth]{images/splink_local_low_card/layer_2_weights.png}
+   \caption{Match weights chart showing m-probability, u-probability, bayes factor, and log2 bayes factor for each comparison level in the hierarchical 2-layer Splink approach on the low\_card variant.}
+   \label{fig:hierarchical_match_weights_low_card}
+\end{figure}
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=\textwidth]{images/splink_local_low_card/layer_2_curve.png}
+   \caption{Threshold selection curve showing precision, recall, and F1 score as functions of the match probability threshold for the hierarchical 2-layer Splink approach on the low\_card variant. The curve illustrates the trade-off between precision and recall across different threshold values.}
+   \label{fig:hierarchical_threshold_curve_low_card}
+\end{figure}
+
+
+\subsubsection{Discussion}
+\begin{itemize}
+    \item \textbf{Polarising Effect}: As expected from the theoretical discussion in Section~\ref{sec:framework}, the second layer exhibits polarising behaviour - the learned weights tend to extreme values, acting as ``kingmakers'' that dominantly select certain aggregation functions over others rather than learning balanced combinations.
+    \item \textbf{Weight Interpretability vs. Practical Utility}: While the second-layer weights are explainable and indicate which aggregation functions the model considers most predictive, this extreme weighting renders the approach currently unviable for practical use (or, a viable dataset is yet to be found for this approach). The model effectively reduces to selecting a single dominant aggregation function rather than learning a nuanced combination.
+    \item \textbf{Generalisation Challenge}: This behaviour highlights the need for further research into aggregation functions that are more generalisable and robust across different dataset characteristics. Fixed aggregation strategies may currently provide more stable performance than learned hierarchical weights.
+    \item \textbf{Comparison to Direct Aggregation}: Initial exploration suggests that direct aggregation methods (sum, max, top-k mean, noisy-or, softmax) often provide more consistent and interpretable results than the hierarchical approach, which tends to overfit to the training signal.
+    \item \textbf{Scalability Considerations}: While training two sequential Splink models increases computational complexity, the primary limitation is not computational but methodological - the hierarchical approach as currently formulated does not adequately generalise beyond the training distribution.
+\end{itemize}
+
+We further discuss, albeit at shallow depth, about a separate consideration - applying mathematically simpler \textit{confidence scores} in \ref{sec:discussion}. 
+
+% ============================================================
+% End of Experimental Results \& Discussion
+% ============================================================

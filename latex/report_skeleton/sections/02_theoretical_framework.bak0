@@ -1,0 +1,318 @@
+% ============================================================
+% 2. Theoretical Framework & Methodology
+% ============================================================
+\section{Theoretical Framework \& Methodology}
+\label{sec:framework}
+
+% --- 2.1 FELLEGI-SUNTER: Core Theory (Front-loaded) ---
+\subsection{Foundations: The Fellegi-Sunter Probabilistic Model}
+\label{sec:fs_foundations}
+
+Both frameworks build on the \fellegisunter{} probabilistic record linkage model \cite{fellegi1969theory}, implemented via \splink{} \cite{splink2024}. Full derivations are in \Cref{annex:math_derivations}.
+
+\subsubsection{Model Setup}
+For a record pair $(r_1, r_2)$, we observe a \textbf{comparison vector} $\boldsymbol{\gamma} = (\gamma_1, \dots, \gamma_K)$ where each $\gamma_k$ is the comparison outcome for field $k$ (e.g., exact match, Jaro-Winkler band, percentage-difference bucket). The linkage task is a hypothesis test between match ($H_M$) and non-match ($H_U$).
+
+The model assumes \textbf{conditional independence} of field comparisons given match status:
+\begin{align}
+    \mathbb{P}(\boldsymbol{\gamma} \mid M) &= \prod_{k=1}^K m_k(\gamma_k), &
+    \mathbb{P}(\boldsymbol{\gamma} \mid U) &= \prod_{k=1}^K u_k(\gamma_k)
+\end{align}
+where $m_k(\gamma) = \mathbb{P}(\gamma_k = \gamma \mid M)$ is the \textit{m-probability} (probability of observing comparison value $\gamma$ on field $k$ among true matches) and $u_k(\gamma) = \mathbb{P}(\gamma_k = \gamma \mid U)$ is the \textit{u-probability} (same for non-matches). The prior match probability in the comparison space is $\pi = \mathbb{P}(M)$.
+
+\subsubsection{Match Weight and Posterior Probability}
+The likelihood ratio is $\Lambda(\boldsymbol{\gamma}) = \mathbb{P}(\boldsymbol{\gamma} \mid M) / \mathbb{P}(\boldsymbol{\gamma} \mid U)$. Under conditional independence, the \textbf{match weight} (log-likelihood ratio, base~2) decomposes additively:
+\begin{equation}
+    w(\boldsymbol{\gamma}) = \log_2 \Lambda(\boldsymbol{\gamma}) = \sum_{k=1}^K \log_2 \frac{m_k(\gamma_k)}{u_k(\gamma_k)} .
+\end{equation}
+Each field contributes a weight $w_k(\gamma_k)$ that depends on the observed comparison level—exact match yields large positive weight ($m \gg u$), mismatch yields large negative weight ($u \gg m$), partial match yields an intermediate weight, enabling fuzzy matching.
+
+By Bayes' theorem, the posterior match probability is:
+\begin{equation}
+    \mathbb{P}(M \mid \boldsymbol{\gamma}) = \frac{\pi \cdot 2^{w(\boldsymbol{\gamma})}}{\pi \cdot 2^{w(\boldsymbol{\gamma})} + (1-\pi)} .
+    \label{eq:posterior}
+\end{equation}
+Equivalently, $w = \log_2 \left( \frac{\mathbb{P}(M \mid \boldsymbol{\gamma})}{1 - \mathbb{P}(M \mid \boldsymbol{\gamma})} \cdot \frac{1-\pi}{\pi} \right)$.
+
+\subsubsection{Parameter Estimation}
+The parameters $\{m_k, u_k, \pi\}$ are estimated via the \textbf{Expectation-Maximisation (EM) algorithm} \cite{dempster1977maximum} on a blocked comparison space. \splink{} initialises $\pi$ using a strict blocking rule (high precision) and a target recall $R$, then iterates E-step (compute posteriors $\tau_i = \mathbb{P}(M \mid \boldsymbol{\gamma}_i)$) and M-step (re-estimate $m_k, u_k, \pi$ weighted by $\tau_i$) until convergence. Full details are in \Cref{annex:em_derivation}.
+
+% --- 2.2 TWO FRAMEWORKS OVERVIEW ---
+\subsection{Two Frameworks for Global Entity Resolution}
+\label{sec:two_frameworks_overview}
+
+We study two distinct frameworks for resolving \globalentity{}s under the assumption of \textbf{stable within-dataset identifiers}: records sharing a \texttt{local\_source\_id} belong to the same \globalentity{}. The frameworks differ in \textit{where} and \textit{how} the local-to-global transition occurs.
+
+\begin{description}
+    \item[\textbf{Framework 1: Score Aggregation (Local $\to$ Global)}]
+    Perform local probabilistic record linkage (\fellegisunter{} via \splink{}) on individual record pairs, producing a matrix of match weights/probabilities per \globalentity{} pair. Aggregate this matrix to a single global score using scalar functions (Sum, Mean, Noisy-OR, Max) or vector-space aggregation.
+
+    \item[\textbf{Framework 2: Profile Aggregation (Behavioural Profile Matching)}]
+    \textbf{First} compress each \globalentity{}'s records into a fixed-dimensional \textbf{behavioural profile} (a latent feature vector/set summarising its multi-record behaviour). \textbf{Then} perform set-similarity matching on these profiles, and \textbf{always} train a second \fellegisunter{} model (Layer-2 \splink{}) on the profile-level features to produce calibrated global match probabilities. The Layer-2 model is not optional—it is a core component that corrects for feature correlation, learns discriminative weights, and provides proper posterior probabilities.
+\end{description}
+
+\Cref{fig:two_frameworks} illustrates the architectural distinction.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.5cm,
+        every node/.style={font=\small},
+        box/.style={draw, rectangle, rounded corners, minimum width=3.5cm, minimum height=1cm, align=center}
+    ]
+        % Score Aggregation (Left)
+        \node[box, fill=blue!10] (input1) {Records $R_A$, $R_B$};
+        \node[box, fill=green!10, below=of input1] (local1) {Local Pairwise Matching (Fellegi-Sunter / Splink)};
+        \node[box, fill=yellow!10, below=of local1] (score1) {Score Matrix $P \in [0,1]^{m \times n}$};
+        \node[box, fill=orange!10, below=of score1] (agg1) {Scalar Aggregation $\mathcal{A}(P)$ (Sum, Mean, Noisy-OR, Max)};
+        \node[box, fill=red!10, below=of agg1] (global1) {Global Decision};
+        \draw[->, thick] (input1) -- (local1);
+        \draw[->, thick] (local1) -- (score1);
+        \draw[->, thick] (score1) -- (agg1);
+        \draw[->, thick] (agg1) -- (global1);
+
+        % Profile Aggregation (Right) - shifted right
+        \node[box, fill=blue!10, right=5cm of input1] (input2) {Records $R_A$, $R_B$};
+        \node[box, fill=purple!10, below=of input2] (profile2) {Behavioural Profile Construction $\text{Agg}(\{r\})$};
+        \node[box, fill=yellow!10, below=of profile2] (profile_vec2) {Profile Vectors $\mathbf{v}_A, \mathbf{v}_B$};
+        \node[box, fill=cyan!10, below=of profile_vec2] (sim2) {Set Similarity Matching (Soft Jaccard, Monge-Elkan, Simpson, Range Overlap)};
+        \node[box, fill=green!10, below=of sim2] (layer2) {Layer-2 Splink (Fellegi-Sunter on Profile Scores)};
+        \node[box, fill=red!10, below=of layer2] (global2) {Global Decision};
+        \draw[->, thick] (input2) -- (profile2);
+        \draw[->, thick] (profile2) -- (profile_vec2);
+        \draw[->, thick] (profile_vec2) -- (sim2);
+        \draw[->, thick] (sim2) -- (layer2);
+        \draw[->, thick] (layer2) -- (global2);
+
+        % Labels
+        \node[above=0.2cm of input1, font=\bfseries] {Score Aggregation};
+        \node[above=0.2cm of input2, font=\bfseries] {Profile Aggregation};
+    \end{tikzpicture}
+    \caption{Two Frameworks for Global Entity Resolution.
+    \textbf{Left (Score Aggregation)}: Local pairwise matching $\to$ score matrix per entity pair $\to$ scalar/vector aggregation $\to$ global decision.
+    \textbf{Right (Profile Aggregation)}: Per-entity record aggregation $\to$ behavioural profile vectors $\to$ set-similarity matching $\to$ \textbf{Layer-2 Splink (required)} $\to$ global decision.}
+    \label{fig:two_frameworks}
+\end{figure}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Framework Comparison}
+    \label{tab:framework_comparison}
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{Aspect} & \textbf{Score Aggregation} & \textbf{Profile Aggregation} \\
+        \midrule
+        Local-to-Global Transition & \textit{After} matching (on scores) & \textit{Before} matching (on records) \\
+        Core Operation & $\mathcal{A}(\{w_{ij}\}_{i=1..m, j=1..n})$ & $\text{sim}(\text{Agg}(\{r_i\}), \text{Agg}(\{r'_j\}))$ \\
+        Comparisons per Entity Pair & $m \times n$ (then aggregation) & $1$ (on profiles) + Layer-2 \\
+        Cardinality Sensitivity & High (combinatorial) & Low (profile dimension fixed) \\
+        Signal Preservation & Full local detail & Lossy compression (by design) \\
+        Theoretical Grounding & \fellegisunter{} on local pairs & \fellegisunter{} on profiles (Layer-2, \textbf{required}) \\
+        Interpretability & Per-field weights $\gamma_k$ & Profile feature contributions \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+As \Cref{tab:framework_comparison} shows, Score Aggregation's cost grows with $m \times n$ local comparisons per entity pair, while Profile Aggregation decouples cost from original cardinality by compressing to profiles first. The Layer-2 \splink{} in Profile Aggregation adds one EM round but reduces inference from $O(mn)$ to $O(1)$ per entity pair.
+
+% --- 2.3 FRAMEWORK 1: SCORE AGGREGATION ---
+\subsection{Framework 1: Score Aggregation (Local $\to$ Global)}
+\label{sec:score_aggregation}
+\label{sec:agg_functions}
+
+In this framework, the local layer produces a matrix of match probabilities $P \in [0,1]^{m \times n}$ (or weights $W \in \mathbb{R}^{m \times n}$) for each \globalentity{} pair $(e_A, e_B)$ with $m = |R_A|$, $n = |R_B|$. The global score is $s(e_A, e_B) = \mathcal{A}(P)$ with $\mathcal{A}$ from the following taxonomy:
+
+\begin{description}
+    \item[\textbf{1. Naive Sum}] $s_{\text{sum}} = \sum_{i=1}^m \sum_{j=1}^n p_{ij}$. Grows with $m n$; not comparable across cardinalities without normalisation.
+
+    \item[\textbf{2. Normalised Mean}] $s_{\text{norm}} = \frac{1}{m n} \sum_{i,j} p_{ij}$. Bounded $[0,1]$. Assumes all local pairs equally informative—fails for imbalanced cardinalities.
+
+    \item[\textbf{3. Noisy-OR}] $s_{\text{noisy-or}} = 1 - \prod_{i,j} (1 - p_{ij})$. Probability that \textit{at least one} local pair is a true match; saturates quickly with many pairs.
+
+    \item[\textbf{4. Max-Over-Partitions}] $s_{\text{max}} = \max_{i,j} p_{ij}$. Takes strongest local evidence; robust to false positives but discards corroborating evidence.
+
+    \item[\textbf{5. Vector-Space Aggregation}] Compute a score vector per entity (e.g., per-field mean weights) and compare via cosine/Jaccard. Retains more structure but still derives from local pairwise scores.
+\end{description}
+
+\noindent\textbf{Theoretical Properties} (proofs in \Cref{annex:agg_properties}):
+\begin{itemize}
+    \item Noisy-OR is monotone in each $p_{ij}$ and in $m,n$ (adding pairs never decreases the score).
+    \item Max is invariant to dominated pairs.
+    \item Normalised mean assumes rank-1 structure $p_{ij} = a_i b_j$ for cardinality invariance.
+    \item All scalar aggregations assume exchangeability of local pairs—violated under cardinality imbalance.
+\end{itemize}
+
+\subsubsection{Local Column Comparison Functions (Framework 1 Input)}
+\label{sec:local_column_similarities}
+
+The local \fellegisunter{} layer requires comparison functions $\gamma_k(r_1, r_2)$ for each field $k$. These produce the \textit{gamma values} that feed into the $m/u$ probability model. We use type-specific comparison levels implemented as Splink \texttt{CustomComparison}:
+
+\begin{description}
+    \item[\textbf{Categorical (Exact Match)}] $\gamma_{\text{cat}}(r_1, r_2) = \mathbb{I}[r_{1,\text{cat}} = r_{2,\text{cat}}]$. Levels: Null, Exact Match, Else.
+
+    \item[\textbf{Numerical (Percentage Difference)}] $\gamma_{\text{num}}(r_1, r_2) = \frac{|r_{1,\text{num}} - r_{2,\text{num}}|}{\max(r_{1,\text{num}}, r_{2,\text{num}})}$. Binned: $\le 5\%$, $\le 15\%$, $\le 40\%$, $\le 70\%$, Else.
+
+    \item[\textbf{Datetime (Days Apart)}] $\gamma_{\text{dt}}(r_1, r_2) = |r_{1,\text{dt}} - r_{2,\text{dt}}|_{\text{days}}$. Levels: Same day, $\le 1$ day, $\le 2$ days, $\le 15$ days, Else.
+
+    \item[\textbf{Text (Jaro-Winkler)}] $\gamma_{\text{text}}(r_1, r_2) = \text{JW}(r_{1,\text{text}}, r_{2,\text{text}})$. Levels: $\ge 0.95$, $\ge 0.88$, $\ge 0.75$, Else.
+
+    \item[\textbf{Set-Valued (Soft Jaccard / Monge-Elkan / Simpson)}] As defined in \Cref{sec:set_similarities}. Applied when fields are tokenised lists (titles, year lists, catalogue numbers).
+\end{description}
+
+Each comparison level maps to a distinct $\gamma_k$ value with separate $m_k(\gamma), u_k(\gamma)$ learned during EM. More levels capture finer similarity distinctions but require more data to estimate reliably.
+
+% --- 2.4 FRAMEWORK 2: PROFILE AGGREGATION ---
+\subsection{Framework 2: Profile Aggregation (Behavioural Profile Matching)}
+\label{sec:profile_aggregation}
+
+This framework shifts the local-to-global transition \textit{upstream}: it \textbf{aggregates records into profiles first}, then matches profiles with a \textbf{required} Layer-2 \fellegisunter{} model.
+
+\subsubsection{Behavioural Profile Construction}
+\label{sec:profile_construction}
+
+For each \globalentity{} $e$ with records $R(e) = \{r_1, \dots, r_k\}$, a \textbf{profile vector} $\mathbf{v}_e$ is constructed via an \texttt{Aggregator}:
+
+\begin{equation}
+    \mathbf{v}_e = \text{Agg}\left( \{ \phi(r) : r \in R(e) \} \right)
+\end{equation}
+
+where $\phi(r)$ extracts features from a single record, and $\text{Agg}$ is a per-feature aggregation operator. The \texttt{aggregation} package (\texttt{em/aggregation/}) implements this with a \texttt{ProcessorRegistry} mapping feature types to \texttt{ColumnProcessor} subclasses:
+
+\begin{itemize}
+    \item \textbf{Numerical} $\to$ moments: $\{\text{mean}, \text{min}, \text{max}\}$ for range overlap comparison.
+    \item \textbf{Categorical (set-valued)} $\to$ token list + frequency vector for Soft Jaccard / Monge-Elkan / Simpson / Mag-Cosine.
+    \item \textbf{Set-valued} $\to$ union of elements across records.
+    \item \textbf{Datetime} $\to$ temporal span / distribution summaries.
+\end{itemize}
+
+The output is a fixed-dimensional profile per entity, independent of original cardinality $k$.
+
+\subsubsection{Profile Matching: Set Similarity on Profiles}
+\label{sec:profile_matching}
+
+Given profiles $\mathbf{v}_A, \mathbf{v}_B$ for entities $e_A, e_B$, per-dimension similarities form a feature vector:
+
+\begin{align}
+    x_d &= \text{sim}_d(v_{A,d}, v_{B,d}), \quad d = 1 \dots D \\
+    \mathbf{x} &= (x_1, \dots, x_D)
+\end{align}
+
+where $\text{sim}_d$ are the soft set metrics (Soft Jaccard, Monge-Elkan, Simpson, Mag-Cosine, Range Overlap) applied per profile dimension $d$.
+
+\subsubsection{Layer-2 \splink{} (Required Component)}
+\label{sec:second_splink_layer}
+
+The profile similarity vector $\mathbf{x}$ is \textbf{not} a probability. A second \fellegisunter{} model (\splink{}) is \textbf{always trained} on these global-pair features—this is a \textit{required} component of the Profile Aggregation framework, not an optional add-on:
+
+\begin{itemize}
+    \item \textbf{Input}: DataFrame with one row per global entity pair, columns $x_1 \dots x_D$.
+    \item \textbf{Blocking}: Use a high-recall profile similarity (e.g., Soft Jaccard $\ge 0.3$) as blocking key.
+    \item \textbf{EM Estimation}: Same procedure; each ``record'' is now a global entity pair.
+    \item \textbf{Output}: Calibrated global match probability $\mathbb{P}(M \mid \mathbf{x})$.
+\end{itemize}
+
+\textbf{Why Layer-2 is required}:
+\begin{enumerate}
+    \item \textbf{Correlation among profile features}: The product-of-univariate-likelihoods assumption is violated; Layer-2 learns the joint distribution from data.
+    \item \textbf{Feature reliability}: Some profile dimensions are more discriminative; Layer-2 learns their $m/u$ weights automatically.
+    \item \textbf{Calibration}: Raw profile similarities are not probabilistically calibrated; Layer-2 provides proper posteriors via \Cref{eq:posterior}.
+\end{enumerate}
+
+\subsubsection{When to Use Which Framework}
+\label{sec:when_which}
+
+\begin{itemize}
+    \item \textbf{Score Aggregation} preferred when: cardinality is low-to-moderate ($m,n \le 20$); full interpretability of per-field local weights is required; computational budget allows $m \times n$ comparisons.
+    \item \textbf{Profile Aggregation} preferred when: cardinality is high ($m,n \gg 20$); combinatorial explosion makes pairwise matching infeasible; entity behaviour is distinctive and well-captured by aggregate statistics. \textbf{Layer-2 Splink is a required component.}
+    \item \textbf{Trade-off}: Layer-2 adds one EM round but reduces inference from $O(mn)$ to $O(1)$ per entity pair.
+\end{itemize}
+
+% --- 2.5 SET SIMILARITY COMPARISON FUNCTIONS ---
+\subsection{Set Similarity Comparison Functions (Shared)}
+\label{sec:set_similarities}
+
+For set-valued fields (tokenised titles, year lists, categorical number lists), standard exact/fuzzy comparisons are insufficient. All our set similarity metrics are fundamentally \textbf{intersection-over-union variants}: they compute a ``soft intersection'' by summing best-match Jaro-Winkler scores instead of exact token matches, then normalise by various denominator forms (union, sum, min). We implement four metrics in DuckDB SQL (\Cref{annex:set_similarities_full}):
+
+Let $L$ and $R$ be token lists. Define the directional best-match sums:
+\begin{align}
+    S_{L \to R} &= \sum_{x \in L} \max_{y \in R} \text{JW}(x,y), \\
+    S_{R \to L} &= \sum_{y \in R} \max_{x \in L} \text{JW}(x,y).
+\end{align}
+The ``soft intersection'' is $S_{L \to R} + S_{R \to L}$, replacing exact $|\text{tokens}_L \cap \text{tokens}_R|$.
+
+\begin{description}
+    \item[\textbf{Monge-Elkan (Asymmetric)}] $\text{ME}(L,R) = \dfrac{S_{L \to R}}{|L|}$. Normalises soft intersection by query size $|L|$. Query-to-reference average best-match.
+
+    \item[\textbf{Soft Jaccard (Symmetric)}] $\text{SJ}(L,R) = \dfrac{S_{L \to R} + S_{R \to L}}{2 \cdot |L \cup R|_{\text{distinct}}}$. Normalises by (distinct) union size; penalises extra tokens on either side.
+
+    \item[\textbf{Soft Dice}] $\text{SD}(L,R) = \dfrac{S_{L \to R} + S_{R \to L}}{|L| + |R|}$. Normalises by total token count; slightly higher for imbalanced sets.
+
+    \item[\textbf{Soft Simpson (Overlap)}] $\text{SS}(L,R) = \dfrac{S_{L \to R} + S_{R \to L}}{2 \cdot \min(|L|, |R|)}$. Normalises by smaller set size; robust to catalog-size imbalance (e.g., one entity has 50 titles, other has 1).
+\end{description}
+
+Each is binned into comparison levels (Null, High, Medium, Low, Else) with tuned thresholds. For numerical profiles (mean/min/max), we use the range overlap coefficient (\Cref{sec:num_range_overlap}).
+
+\subsubsection{Numerical Range Overlap}
+\label{sec:num_range_overlap}
+
+For numerical profiles (mean/min/max from Aggregator), we use the range overlap coefficient:
+\begin{equation}
+    \text{Overlap}(A,B) = \frac{\max(0, \min(A_{\max}, B_{\max}) - \max(A_{\min}, B_{\min}))}{\max(A_{\max}, B_{\max}) - \min(A_{\min}, B_{\min})}
+\end{equation}
+measuring the fraction of the bounding box that overlaps.
+
+% --- 2.6 BLOCKING STRATEGY ---
+\subsection{Blocking Strategy \& Recall Bounds}
+\label{sec:blocking_theory}
+
+Blocking reduces the $\mathcal{O}(|A| \times |B|)$ comparison space. In Score Aggregation, blocking applies to \textit{local record pairs}; in Profile Aggregation, blocking applies to \textit{global entity pairs} (using profile features as blocking keys).
+
+A blocking rule $B$ defines a subset of pairs to compare. The \textit{recall} of a blocking rule is:
+\begin{equation}
+    \text{Recall}(B) = \frac{|\{ \text{true matches} \} \cap B|}{|\{ \text{true matches} \}|}
+\end{equation}
+Since true matches are unknown, we use the \textbf{strictest blocking rules} for EM initialisation:
+\begin{enumerate}
+    \item Construct a conjunction of tight predicates (exact categorical, $\le 10\%$ numerical diff, $\le 1$ day datetime).
+    \item This rule has high precision but unknown recall.
+    \item Use it to estimate $\pi$ for EM initialisation: $\hat{\pi} = \text{matches in strict rule} / \text{pairs in strict rule}$.
+    \item \textit{Rationale}: The strict rule approximates a high-precision sample of matches; if it captures even a fraction, $\hat{\pi}$ is in the right ballpark for EM convergence.
+    \item We compare against varying recall targets in \Cref{sec:sensitivity_blocking}.
+\end{enumerate}
+
+% --- 2.7 IMPLEMENTATION NOTES ---
+\subsection{Implementation: \splink{} Extensions}
+\label{sec:splink_implementation}
+
+\splink{} \cite{splink2024} implements \fellegisunter{} with pragmatic extensions:
+\begin{enumerate}
+    \item \textbf{SQL-based comparisons}: DuckDB/SQLite/PostgreSQL/Spark SQL for parallel execution.
+    \item \textbf{Blocking rules as SQL}: Declarative blocking with cumulative comparison charts.
+    \item \textbf{Custom comparison levels}: \texttt{JaroWinklerLevel}, \texttt{PercentageDifferenceLevel}, \texttt{WithinNDaysLevel}, \texttt{CustomComparison} (for set similarities).
+    \item \textbf{Retained intermediate columns}: Gamma values, Bayes factors, raw comparison outputs.
+    \item \textbf{Evaluation without labels}: Clerical labels table; threshold selection charts.
+\end{enumerate}
+
+\subsection{Profile Aggregation Engine}
+\label{sec:agg_engine}
+
+The \texttt{aggregation} package implements the Profile Aggregation framework:
+\begin{itemize}
+    \item \textbf{ProcessorRegistry}: Maps type strings (\texttt{"numerical"}, \texttt{"categorical"}, \texttt{"set\_union"}) to \texttt{ColumnProcessor} subclasses.
+    \item \textbf{ColumnProcessor} (abstract base): \texttt{get\_agg\_func()}, \texttt{fit\_vocab(df1, df2)}, \texttt{post\_process(df\_agg)}.
+    \item \textbf{Aggregator}: \texttt{fit(df1, df2)} builds vocabularies; \texttt{transform(df, label)} groups by \texttt{unique\_id\_col}, applies agg funcs, runs post-processors.
+\end{itemize}
+
+Usage in \texttt{agg\_music.ipynb}:
+\begin{lstlisting}[language=Python, caption={Aggregator Instantiation for Music Data}, label=lst:agg_music_framework]
+type_groups = ["numerical", "categorical", "set_union"]
+col_groups = [
+    ["numerical_noisy"],
+    ["categorical_title", "categorical_album", "language", "categorical_number"],
+    ["year_options"]
+]
+agg = Aggregator(type_groups=type_groups, col_groups=col_groups, unique_id_col="artist")
+agg.fit(df1_processed, df2_processed)
+aggregated_df1 = agg.transform(df1_processed, "music_catalog_df1")
+aggregated_df2 = agg.transform(df2_processed, "music_catalog_df2")
+\end{lstlisting}

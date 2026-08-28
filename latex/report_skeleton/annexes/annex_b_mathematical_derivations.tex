@@ -1,0 +1,125 @@
+% ============================================================
+% Annex B: Mathematical Derivations
+% ============================================================
+\section{Mathematical Derivations}
+\label{annex:math_derivations}
+
+\section{Fellegi-Sunter Model Derivation}
+\label{annex:fs_derivation}
+
+\subsection{From Hypothesis Test to Match Weight}
+For a record pair $(r_1, r_2)$, we observe comparison vector $\boldsymbol{\gamma} = (\gamma_1, \dots, \gamma_K)$.
+The likelihood ratio is:
+\begin{equation}
+	\Lambda(\boldsymbol{\gamma}) = \frac{\mathbb{P}(\boldsymbol{\gamma} \mid M)}{\mathbb{P}(\boldsymbol{\gamma} \mid U)}
+\end{equation}
+Under conditional independence:
+\begin{equation}
+	\Lambda(\boldsymbol{\gamma}) = \prod_{k=1}^K \frac{m_k(\gamma_k)}{u_k(\gamma_k)}
+\end{equation}
+The match weight (log-likelihood ratio, base 2):
+\begin{equation}
+	w(\boldsymbol{\gamma}) = \log_2 \Lambda(\boldsymbol{\gamma}) = \sum_{k=1}^K \log_2 \frac{m_k(\gamma_k)}{u_k(\gamma_k)}
+\end{equation}
+
+\subsection{Posterior Match Probability}
+Let $\pi = \mathbb{P}(M)$ be the prior match probability in the comparison space.
+By Bayes' theorem:
+\begin{align}
+	\mathbb{P}(M \mid \boldsymbol{\gamma}) & = \frac{\mathbb{P}(\boldsymbol{\gamma} \mid M) \pi}{\mathbb{P}(\boldsymbol{\gamma} \mid M) \pi + \mathbb{P}(\boldsymbol{\gamma} \mid U) (1-\pi)} \\
+	                                       & = \frac{\Lambda(\boldsymbol{\gamma}) \pi}{\Lambda(\boldsymbol{\gamma}) \pi + (1-\pi)}                                                            \\
+	                                       & = \frac{2^{w(\boldsymbol{\gamma})} \pi}{2^{w(\boldsymbol{\gamma})} \pi + (1-\pi)}
+\end{align}
+Solving for $w$:
+\begin{equation}
+	w = \log_2 \left( \frac{\mathbb{P}(M \mid \boldsymbol{\gamma})}{1 - \mathbb{P}(M \mid \boldsymbol{\gamma})} \cdot \frac{1-\pi}{\pi} \right)
+\end{equation}
+
+\subsection{EM Algorithm Derivation}
+\label{annex:em_derivation}
+The complete-data log-likelihood for $N$ pairs with latent match indicators $Z_i \in \{0,1\}$:
+\begin{equation}
+	\ell_c(\boldsymbol{\theta}) = \sum_{i=1}^N \left[ Z_i \log \mathbb{P}(\boldsymbol{\gamma}_i \mid M) + (1-Z_i) \log \mathbb{P}(\boldsymbol{\gamma}_i \mid U) \right]
+\end{equation}
+with $\boldsymbol{\theta} = \{ \pi, \{m_k(\gamma)\}, \{u_k(\gamma)\} \}$.
+
+E-step: Compute $\tau_i = \mathbb{E}[Z_i \mid \boldsymbol{\gamma}_i, \boldsymbol{\theta}^{(t)}] = \mathbb{P}(M \mid \boldsymbol{\gamma}_i, \boldsymbol{\theta}^{(t)})$.
+
+M-step: Maximise $\mathbb{E}[\ell_c \mid \boldsymbol{\gamma}, \boldsymbol{\theta}^{(t)}]$ w.r.t $\boldsymbol{\theta}$:
+\begin{align}
+	\pi^{(t+1)}         & = \frac{1}{N} \sum_{i=1}^N \tau_i                                                          \\
+	m_k^{(t+1)}(\gamma) & = \frac{\sum_{i=1}^N \tau_i \mathbb{I}[\gamma_{ik} = \gamma]}{\sum_{i=1}^N \tau_i}         \\
+	u_k^{(t+1)}(\gamma) & = \frac{\sum_{i=1}^N (1-\tau_i) \mathbb{I}[\gamma_{ik} = \gamma]}{\sum_{i=1}^N (1-\tau_i)}
+\end{align}
+
+\subsection{Blocked EM}
+When blocking rule $B$ is applied, pairs outside $B$ are not compared.
+The prior in the blocked space is $\pi_B = \frac{\mathbb{E}[\text{matches in } B]}{|B|}$.
+\splink{} estimates $\pi_B$ via user-provided target recall $R$ and strict blocking rule:
+\begin{equation}
+	\hat{\pi}_B = \frac{R \cdot (\text{total true matches})}{|B|}
+\end{equation}
+Total true matches $\approx \pi \cdot |A| \cdot |B|$ (cartesian), but $\pi$ is unknown.
+\splink{} uses the strict rule (high precision) to estimate matches in strict rule, then scales by $R$.
+
+\section{Aggregation Function Properties}
+\label{annex:agg_properties}
+
+Let $P \in [0,1]^{m \times n}$ be the matrix of local pairwise match probabilities for global entity pair $(e_A, e_B)$.
+
+\begin{theorem}[Noisy-OR Monotonicity]
+	$s_{\text{noisy-or}}(P) = 1 - \prod_{i,j} (1 - p_{ij})$ is monotonically increasing in each $p_{ij}$ and in $m,n$ (adding pairs never decreases the score).
+\end{theorem}
+\begin{proof}
+	$\frac{\partial s}{\partial p_{ij}} = \prod_{(k,l) \neq (i,j)} (1 - p_{kl}) \ge 0$.
+	Adding a new pair $(m+1, n+1)$ multiplies by $(1 - p_{\text{new}}) \le 1$, so $s$ increases or stays same.
+\end{proof}
+
+\begin{theorem}[Max Aggregation Invariance]
+	$s_{\text{max}}(P)$ depends only on the maximum entry. Adding dominated pairs has no effect.
+\end{theorem}
+\begin{proof}
+	Trivial from definition of maximum.
+\end{proof}
+
+\begin{theorem}[Normalised Mean Cardinality Bias]
+	$s_{\text{norm}}(P) = \frac{1}{mn} \sum p_{ij}$.
+	If $P$ has rank-1 structure $p_{ij} = a_i b_j$ (e.g., independent match signals per record), then
+	$s_{\text{norm}} = (\frac{1}{m} \sum a_i)(\frac{1}{n} \sum b_j)$ — depends only on means, not on $m,n$ individually.
+\end{theorem}
+
+\section{Set Similarity Metrics}
+\label{annex:set_metrics}
+
+\subsection{Monge-Elkan}
+$\text{ME}(L,R) = \frac{1}{|L|} \sum_{x \in L} \max_{y \in R} \text{sim}(x,y)$.
+Asymmetric: $\text{ME}(L,R) \neq \text{ME}(R,L)$ in general.
+
+\subsection{Soft Jaccard}
+$S_{L\to R} = \sum_{x \in L} \max_{y \in R} \text{JW}(x,y)$,
+$S_{R\to L} = \sum_{y \in R} \max_{x \in L} \text{JW}(x,y)$.
+$\text{SJ}(L,R) = \frac{S_{L\to R} + S_{R\to L}}{2 |L \cup R|}$.
+Symmetric, range $[0,1]$.
+When $|L|=|R|=1$, $\text{SJ} = \text{JW}(x,y)$.
+
+\subsection{Magnitude-Weighted Cosine}
+For vectors $\mathbf{u}, \mathbf{v} \in \mathbb{R}^d_{\ge 0}$:
+$\text{MagCosine}(\mathbf{u}, \mathbf{v}) = \frac{\mathbf{u} \cdot \mathbf{v}}{\max(||\mathbf{u}||^2, ||\mathbf{v}||^2)}$.
+Downweights matches where one vector has much larger magnitude (catalog size imbalance).
+
+\section{Cardinality Breakdown Analysis}
+\label{annex:cardinality_math}
+
+Let $e_A, e_B$ be true matching global entities with $m$ and $n$ records.
+True match pairs: $mn$.
+Non-match pairs involving these records: $m(N_B - n) + n(N_A - m) + (N_A - m)(N_B - n)$.
+Ratio of true to false local pairs for this entity: $\frac{mn}{m N_B + n N_A - mn}$.
+When $m,n$ are small relative to $N_A, N_B$, this ratio is tiny — the signal is drowned in noise.
+When $m,n$ are large, the ratio grows, but the comparison space explodes.
+
+The independence violation:
+Covariance of two local comparisons sharing a record:
+$\text{Cov}(\gamma(r_{A,1}, r_{B,1}), \gamma(r_{A,1}, r_{B,2})) = \mathbb{E}[\gamma_1 \gamma_2] - \mathbb{E}[\gamma_1]\mathbb{E}[\gamma_2]$.
+Since both depend on the true value of $r_{A,1}$, this is positive.
+The effective number of independent comparisons is less than $mn$.
+Layer-2 addresses this by using a correlation-adjusted likelihood.

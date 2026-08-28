@@ -1,0 +1,432 @@
+% ============================================================
+% Annex D: Splink Configurations
+% ============================================================
+\section{\splink{} Configurations}
+\label{annex:splink_configs}
+
+This annex documents the \splink{} settings dictionaries used across experiments.
+
+\section{Synthetic Data: Core Configuration}
+\label{annex:splink_synthetic}
+
+\begin{lstlisting}[language=Python, caption={Splink Settings for Synthetic Data (splink_process.ipynb)}, label=lst:splink_synthetic]
+from splink import DuckDBAPI, Linker, SettingsCreator
+import splink.comparison_level_library as cll
+import splink.comparison_library as cl
+
+# --- Comparison Levels ---
+
+# Numerical: Percentage difference bands
+numerical_levels = [
+    cll.NullLevel("numerical_noisy"),
+    cll.PercentageDifferenceLevel("numerical_noisy", 0.05),   # <= 5%
+    cll.PercentageDifferenceLevel("numerical_noisy", 0.15),   # <= 15%
+    cll.PercentageDifferenceLevel("numerical_noisy", 0.40),   # <= 40%
+    cll.PercentageDifferenceLevel("numerical_noisy", 0.70),   # <= 70%
+    cll.ElseLevel(),
+]
+numerical_comparison = cl.CustomComparison(
+    output_column_name="numerical_noisy",
+    comparison_levels=numerical_levels
+)
+
+# Datetime: Within N days
+within_n_days = "abs(date_diff('day', datetime_noisy_l, datetime_noisy_r)) <= {n}"
+datetime_comparison = {
+    "output_column_name": "datetime_noisy",
+    "comparison_levels": [
+        cll.NullLevel("datetime_noisy"),
+        {"sql_condition": within_n_days.format(n=0), "label_for_charts": "Same day"},
+        {"sql_condition": within_n_days.format(n=1), "label_for_charts": "<=1 day"},
+        {"sql_condition": within_n_days.format(n=2), "label_for_charts": "<=2 days"},
+        {"sql_condition": within_n_days.format(n=15), "label_for_charts": "<=15 days"},
+        cll.ElseLevel(),
+    ],
+    "comparison_description": "Datetime days apart",
+}
+
+# Categorical: Exact match only (low cardinality)
+category_levels = [
+    cll.NullLevel("categorical"),
+    cll.ExactMatchLevel("categorical"),
+    cll.ElseLevel(),
+]
+category_comparison = cl.CustomComparison(
+    output_column_name="categorical",
+    comparison_levels=category_levels
+)
+
+# --- Blocking Rules (Disjunctive Union) ---
+brs = [
+    # Category match or missing
+    "l.categorical = r.categorical OR l.categorical IS NULL OR r.categorical IS NULL",
+    # Month match or missing
+    "strftime(l.datetime_noisy, '%Y%m') = strftime(r.datetime_noisy, '%Y%m') \
+     OR l.datetime_noisy IS NULL OR r.datetime_noisy IS NULL",
+    # Numerical within 25% or missing
+    "(ABS(l.numerical_noisy - r.numerical_noisy) / NULLIF( \
+        CASE WHEN l.numerical_noisy > r.numerical_noisy \
+             THEN l.numerical_noisy ELSE r.numerical_noisy END, 0)) < 0.25 \
+     OR l.numerical_noisy IS NULL OR r.numerical_noisy IS NULL",
+    # Date shift +15 days or missing
+    "strftime(CAST(l.datetime_noisy AS TIMESTAMP) + INTERVAL '15' DAY, '%Y%m') \
+     = strftime(CAST(r.datetime_noisy AS TIMESTAMP), '%Y%m') \
+     OR l.datetime_noisy IS NULL OR r.datetime_noisy IS NULL",
+    # Date shift -15 days or missing
+    "strftime(CAST(l.datetime_noisy AS TIMESTAMP) - INTERVAL '15' DAY, '%Y%m') \
+     = strftime(CAST(r.datetime_noisy AS TIMESTAMP), '%Y%m') \
+     OR l.datetime_noisy IS NULL OR r.datetime_noisy IS NULL",
+]
+
+# --- Strict Rules for EM Initialisation ---
+strict_category = "l.categorical = r.categorical"
+strict_numerical = """
+    (ABS(l.numerical_noisy - r.numerical_noisy) / NULLIF(
+        CASE WHEN l.numerical_noisy > r.numerical_noisy THEN l.numerical_noisy ELSE r.numerical_noisy END, 0
+    )) <= 0.10
+"""
+strict_datetime = """
+    ABS(epoch(CAST(l.datetime_noisy AS TIMESTAMP)) - epoch(CAST(r.datetime_noisy AS TIMESTAMP))) <= 86400
+"""
+strict_training_rules = [
+    strict_category + " AND " + strict_datetime,
+    strict_category + " AND " + strict_numerical,
+]
+
+# --- Settings Creator ---
+settings = SettingsCreator(
+    link_type="link_only",
+    unique_id_column_name="latent_event_id",
+    blocking_rules_to_generate_predictions=brs,
+    comparisons=[
+        numerical_comparison,
+        category_comparison,
+        datetime_comparison
+    ],
+    retain_intermediate_calculation_columns=True,
+    additional_columns_to_retain=["local_source_id", "global_entity_id"],
+)
+
+(*@\texttt{linker = Linker([df1, df2], settings, db\_api=db\_api)}@*)
+\end{lstlisting}
+
+\section{EM Training Schedule}
+\label{annex:em_schedule}
+
+\begin{lstlisting}[language=Python, caption={EM Training Procedure}, label=lst:em_training]
+# 1. Initial prior from strict rule with high recall target
+linker.training.estimate_probability_two_random_records_match(
+    strict_training_rules[0],  # or combined strict rule
+    recall=0.99
+)
+
+# 2. Estimate u-probabilities from random sampling
+linker.training.estimate_u_using_random_sampling(max_pairs=1e7)
+
+# 3. EM round 1: Block on datetime (unlocks numerical + categorical)
+linker.training.estimate_parameters_using_expectation_maximisation(
+    "abs(epoch(l.datetime_noisy::TIMESTAMP) - epoch(r.datetime_noisy::TIMESTAMP)) <= 86400"
+)
+
+# 4. EM round 2: Block on categorical (unlocks datetime + numerical)
+linker.training.estimate_parameters_using_expectation_maximisation(
+    "l.categorical = r.categorical"
+)
+
+# 5. (Optional) Additional rounds until convergence
+# Check: linker.visualisations.match_weights_chart()
+
+# 6. Predict
+df_predict = linker.inference.predict()
+pd_predict = df_predict.as_pandas_dataframe()
+\end{lstlisting}
+
+\section{MusicBrainz: Set Similarity Configuration}
+\label{annex:splink_music}
+
+\begin{lstlisting}[language=Python, caption={Soft Jaccard Comparison (DuckDB SQL)}, label=lst:soft_jaccard]
+import splink.comparison_library as cl
+import splink.comparison_level_library as cll
+
+def soft_jaccard_comparison(output_column_name: str, token_col_name: str) -> cl.CustomComparison:
+    """Symmetric Soft Jaccard with Jaro-Winkler token similarity."""
+    max_sims_l = f"""
+        list_aggregate(
+            list_transform({token_col_name}_l,
+                x -> list_max(list_transform({token_col_name}_r,
+                    y -> jaro_winkler_similarity(x, y)))),
+            'sum'
+        )
+    """
+    max_sims_r = f"""
+        list_aggregate(
+            list_transform({token_col_name}_r,
+                y -> list_max(list_transform({token_col_name}_l,
+                    x -> jaro_winkler_similarity(x, y)))),
+            'sum'
+        )
+    """
+    union_sql = f"len(list_distinct(list_concat({token_col_name}_l, {token_col_name}_r)))"
+    score = f"({max_sims_l} + {max_sims_r}) / (2.0 * {union_sql})"
+
+    return cl.CustomComparison(
+        output_column_name=output_column_name,
+        comparison_levels=[
+            {"sql_condition": f"{token_col_name}_l IS NULL OR {token_col_name}_r IS NULL \
+                OR len({token_col_name}_l) = 0 OR len({token_col_name}_r) = 0",
+             "label_for_charts": "Null or Empty List", "is_null_level": True},
+            {"sql_condition": f"{score} >= 0.85", "label_for_charts": "High Soft Jaccard (>=0.85)"},
+            {"sql_condition": f"{score} >= 0.65", "label_for_charts": "Medium Soft Jaccard (>=0.65)"},
+            {"sql_condition": f"{score} >= 0.40", "label_for_charts": "Low Soft Jaccard (>=0.40)"},
+            cll.ElseLevel()
+        ]
+    )
+
+def monge_elkan_comparison(output_column_name: str, token_col_name: str) -> cl.CustomComparison:
+    """Asymmetric Monge-Elkan (query -> reference)."""
+    max_sims = f"""
+        list_aggregate(
+            list_transform({token_col_name}_l,
+                x -> list_max(list_transform({token_col_name}_r,
+                    y -> jaro_winkler_similarity(x, y)))),
+            'sum'
+        )
+    """
+    score = f"{max_sims} / len({token_col_name}_l)"
+
+    return cl.CustomComparison(
+        output_column_name=output_column_name,
+        comparison_levels=[
+            {"sql_condition": f"{token_col_name}_l IS NULL OR {token_col_name}_r IS NULL \
+                OR len({token_col_name}_l) = 0 OR len({token_col_name}_r) = 0",
+             "label_for_charts": "Null or Empty List", "is_null_level": True},
+            {"sql_condition": f"{score} >= 0.85", "label_for_charts": "High Monge-Elkan (>=0.85)"},
+            {"sql_condition": f"{score} >= 0.70", "label_for_charts": "Medium Monge-Elkan (>=0.70)"},
+            {"sql_condition": f"{score} >= 0.55", "label_for_charts": "Low Monge-Elkan (>=0.55)"},
+            cll.ElseLevel()
+        ]
+    )
+
+def simpson_similarity_comparison(output_column_name: str, token_col_name: str) -> cl.CustomComparison:
+    """Simpson overlap coefficient for exact token matches."""
+    intersect = f"len(list_intersect({token_col_name}_l, {token_col_name}_r)) * 1.0"
+    min_size = f"NULLIF(least(len({token_col_name}_l), len({token_col_name}_r)), 0)"
+    score = f"({intersect}) / {min_size}"
+
+    return cl.CustomComparison(
+        output_column_name=output_column_name,
+        comparison_levels=[
+            {"sql_condition": f"{token_col_name}_l IS NULL OR {token_col_name}_r IS NULL \
+                OR len({token_col_name}_l) = 0 OR len({token_col_name}_r) = 0",
+             "label_for_charts": "Null or Empty List", "is_null_level": True},
+            {"sql_condition": f"{score} >= 0.8", "label_for_charts": "High Simpson (>=0.8)"},
+            {"sql_condition": f"{score} >= 0.5", "label_for_charts": "Medium Simpson (>=0.5)"},
+            {"sql_condition": f"{score} >= 0.2", "label_for_charts": "Low Simpson (>=0.2)"},
+            {"sql_condition": f"{score} < 0.2", "label_for_charts": "No Simpson Overlap (<0.2)"}
+        ]
+    )
+
+def numerical_overlap_similarity_comparison(output_column_name: str, base_col_name: str) -> cl.CustomComparison:
+    """Range overlap coefficient using min/max from Aggregator."""
+    max_l, max_r = f"{base_col_name}_max_l", f"{base_col_name}_max_r"
+    min_l, min_r = f"{base_col_name}_min_l", f"{base_col_name}_min_r"
+    score = f"""
+        CASE
+            WHEN (least({max_l}, {max_r}) - greatest({min_l}, {min_r})) <= 0 THEN 0.0
+            ELSE (least({max_l}, {max_r}) - greatest({min_l}, {min_r})) * 1.0 /
+                 NULLIF((greatest({max_l}, {max_r}) - least({min_l}, {min_r})), 0)
+        END
+    """
+
+    return cl.CustomComparison(
+        output_column_name=output_column_name,
+        comparison_levels=[
+            cll.NullLevel(f"{base_col_name}_mean"),
+            {"sql_condition": f"{score} >= 0.8", "label_for_charts": "High Overlap (>=0.8)"},
+            {"sql_condition": f"{score} >= 0.5", "label_for_charts": "Medium Overlap (>=0.5)"},
+            {"sql_condition": f"{score} >= 0.2", "label_for_charts": "Low Overlap (>=0.2)"},
+            cll.ElseLevel()
+        ]
+    )
+
+def year_overlap_comparison(output_column_name: str, token_col_name: str) -> cl.CustomComparison:
+    """Exact year intersection count."""
+    intersect = f"len(list_intersect({token_col_name}_l, {token_col_name}_r))"
+
+    return cl.CustomComparison(
+        output_column_name=output_column_name,
+        comparison_levels=[
+            {"sql_condition": f"{token_col_name}_l IS NULL OR {token_col_name}_r IS NULL \
+                OR len({token_col_name}_l) = 0 OR len({token_col_name}_r) = 0",
+             "label_for_charts": "No Year Data", "is_null_level": True},
+            {"sql_condition": f"{intersect} > 3", "label_for_charts": "More than 3 Years Overlap"},
+            {"sql_condition": f"{intersect} > 2", "label_for_charts": "More than 2 Years Overlap"},
+            {"sql_condition": f"{intersect} > 1", "label_for_charts": "More than 1 Year Overlap"},
+            {"sql_condition": f"{intersect} = 1", "label_for_charts": "1 Year Overlap"},
+            cll.ElseLevel()
+        ]
+    )
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={MusicBrainz Settings (agg_music.ipynb)}, label=lst:music_settings]
+blocking_rules = [
+    "len(list_intersect(l.categorical_number, r.categorical_number)) >= 1",
+]
+
+settings = {
+    "link_type": "link_only",
+    "unique_id_column_name": "artist",
+    "probability_two_random_records_match": 0.001,
+    "retain_matching_columns": True,
+    "retain_intermediate_calculation_columns": True,
+    "blocking_rules_to_generate_predictions": blocking_rules,
+    "comparisons": [
+        soft_jaccard_comparison("title_soft_jaccard", "categorical_title"),
+        monge_elkan_comparison("title_monge_elkan", "categorical_title"),
+        year_overlap_comparison("year_overlap", "year_options"),
+        simpson_similarity_comparison("cat_number_simpson", "categorical_number"),
+        numerical_overlap_similarity_comparison("noisy_distribution_overlap", "numerical_noisy"),
+    ]
+}
+\end{lstlisting}
+
+\section{EM Training for MusicBrainz}
+\label{annex:music_em}
+
+\begin{lstlisting}[language=Python, caption={MusicBrainz EM Training Rules}, label=lst:music_em]
+# Training blocking rules (each unlocks different comparisons)
+
+# 1. Categorical number exact overlap
+train_cat_exact = "len(list_intersect(l.categorical_number, r.categorical_number)) >= 1"
+
+# 2. Numerical range overlap >= 0.2
+train_noisy_overlap = """
+    CASE
+        WHEN (least(l.numerical_noisy_max, r.numerical_noisy_max) -
+              greatest(l.numerical_noisy_min, r.numerical_noisy_min)) <= 0 THEN 0.0
+        ELSE
+            (least(l.numerical_noisy_max, r.numerical_noisy_max) -
+             greatest(l.numerical_noisy_min, r.numerical_noisy_min)) * 1.0 /
+            NULLIF((greatest(l.numerical_noisy_max, r.numerical_noisy_max) -
+                    least(l.numerical_noisy_min, r.numerical_noisy_min)), 0)
+    END >= 0.2
+"""
+
+# 3. Year token intersection >= 1
+train_year = "len(list_intersect(l.year_options, r.year_options)) >= 1"
+
+# 4. Title Soft Jaccard >= 0.65
+train_title_soft = """
+    CASE
+        WHEN l.categorical_title IS NULL OR r.categorical_title IS NULL
+             OR len(l.categorical_title) = 0 OR len(r.categorical_title) = 0 THEN 0.0
+        ELSE
+            (list_aggregate(list_transform(l.categorical_title,
+                 x -> list_max(list_transform(r.categorical_title,
+                     y -> jaro_winkler_similarity(x, y)))), 'sum') +
+             list_aggregate(list_transform(r.categorical_title,
+                 y -> list_max(list_transform(l.categorical_title,
+                     x -> jaro_winkler_similarity(x, y)))), 'sum')
+            ) / (2.0 * NULLIF(len(list_distinct(list_concat(l.categorical_title, r.categorical_title))), 0))
+    END >= 0.65
+"""
+
+training_blocking_rules = [
+    train_cat_exact,
+    train_noisy_overlap,
+    train_year,
+    train_title_soft,
+]
+
+for rule in training_blocking_rules:
+    linker.training.estimate_parameters_using_expectation_maximisation(rule)
+\end{lstlisting}
+
+\section{DBLP-ACM Configuration}
+\label{annex:dblp_config}
+
+\begin{lstlisting}[language=Python, caption={DBLP-ACM Settings (splink_dblp_acm.ipynb)}, label=lst:dblp_settings]
+# Typical bibliographic comparison setup
+comparisons = [
+    # Title: Jaro-Winkler bands
+    {
+        "output_column_name": "title",
+        "comparison_levels": [
+            cll.NullLevel("title"),
+            cll.JaroWinklerLevel("title", threshold=0.95),
+            cll.JaroWinklerLevel("title", threshold=0.88),
+            cll.JaroWinklerLevel("title", threshold=0.75),
+            cll.ElseLevel(),
+        ],
+    },
+    # Authors: Jaro-Winkler on concatenated author strings
+    {
+        "output_column_name": "authors",
+        "comparison_levels": [
+            cll.NullLevel("authors"),
+            cll.JaroWinklerLevel("authors", threshold=0.9),
+            cll.JaroWinklerLevel("authors", threshold=0.7),
+            cll.ElseLevel(),
+        ],
+    },
+    # Venue: Exact
+    cll.ExactMatchLevel("venue"),
+    # Year: Exact (with null level)
+    {
+        "output_column_name": "year",
+        "comparison_levels": [cll.NullLevel("year"), cll.ExactMatchLevel("year"), cll.ElseLevel()],
+    },
+]
+
+blocking_rules = [
+    "l.year = r.year",  # Block on year
+    "l.venue = r.venue",  # Block on venue
+    # Token-based blocking on title (splink's block_on with tokenisation)
+]
+\end{lstlisting}
+
+\section{Evaluation Without Labels}
+\label{annex:eval_nolabels}
+
+\begin{lstlisting}[language=Python, caption={Accuracy Analysis with Clerical Labels}, label=lst:eval_labels]
+import pandas as pd
+
+# Build ground-truth labels from latent_event_id (synthetic) or manual review
+# Splink requires: source_dataset_l, source_dataset_r, latent_event_id_l, latent_event_id_r, clerical_match_score
+ids_df1 = df1[['latent_event_id']].copy()
+ids_df2 = df2[['latent_event_id']].copy()
+true_matches = ids_df1.merge(ids_df2, on='latent_event_id')
+
+labels_df = pd.DataFrame()
+labels_df["latent_event_id_l"] = true_matches["latent_event_id"]
+labels_df["latent_event_id_r"] = true_matches["latent_event_id"]
+labels_df["source_dataset_l"] = "__splink__input_table_0"
+labels_df["source_dataset_r"] = "__splink__input_table_1"
+labels_df["clerical_match_score"] = 1.0
+
+# Fix left-right ordering (Splink requirement)
+concat_l = labels_df["source_dataset_l"] + "-__-" + labels_df["latent_event_id_l"]
+concat_r = labels_df["source_dataset_r"] + "-__-" + labels_df["latent_event_id_r"]
+swap = concat_l > concat_r
+labels_df.loc[swap, ["source_dataset_l", "source_dataset_r"]] = \
+    labels_df.loc[swap, ["source_dataset_r", "source_dataset_l"]].values
+labels_df.loc[swap, ["latent_event_id_l", "latent_event_id_r"]] = \
+    labels_df.loc[swap, ["latent_event_id_r", "latent_event_id_l"]].values
+
+# Register
+linker.table_management.register_labels_table(labels_df, overwrite=True)
+
+# Evaluate
+roc_df = linker.evaluation.accuracy_analysis_from_labels_table(
+    "labels_table",
+    output_type="table",
+    add_metrics=["f1", "accuracy"]
+).as_pandas_dataframe()
+
+# Threshold selection chart
+linker.evaluation.accuracy_analysis_from_labels_table(
+    "labels_table",
+    add_metrics=["f1", "accuracy"],
+    output_type="threshold_selection"
+)
+\end{lstlisting}

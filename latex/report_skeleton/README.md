@@ -1,0 +1,77 @@
+# LaTeX Report Skeleton
+
+This directory contains a modular LaTeX report skeleton for the Hybrid Entity Resolution research report.
+
+## Structure
+
+```
+report_skeleton/
+├── main.tex                      # Main entry point
+├── references.bib                # Bibliography
+├── sections/                     # Main report sections (input via \input)
+│   ├── 00_abstract.tex
+│   ├── 01_introduction.tex
+│   ├── 02_theoretical_framework.tex
+│   ├── 03_system_implementation.tex
+│   ├── 04_experimental_methodology.tex
+│   ├── 05_experimental_results.tex
+│   ├── 06_edge_cases.tex
+│   ├── 07_discussion.tex
+│   └── 08_future_work_conclusion.tex
+├── annexes/                      # Appendices (input via \input after \appendix)
+│   ├── annex_a_er_methodologies.tex
+│   ├── annex_b_mathematical_derivations.tex
+│   ├── annex_c_data_generation_code.tex
+│   ├── annex_d_splink_configurations.tex
+│   └── annex_e_set_similarities.tex
+├── figures/                      # Place for figure PDFs (referenced in sections)
+└── tables/                       # Place for standalone table files (optional)
+```
+
+## Compilation
+
+```bash
+cd report_skeleton
+pdflatex main.tex
+biber main   # or bibtex main
+pdflatex main.tex
+pdflatex main.tex
+```
+
+Or use `latexmk`:
+```bash
+latexmk -pdf main.tex
+```
+
+## Placeholder Content
+
+Sections marked with `\textit{TBD}` or `\\textit{TBD: Fill in from...}` need to be populated with actual experimental results from the notebooks:
+- `splink_process.ipynb`, `splink_small.ipynb`, `splink_c2.ipynb`, `splink_o50.ipynb`
+- `splink_agg.ipynb`, `splink_music_agg.ipynb`
+- `splink_dblp_acm.ipynb`, `splink_music.ipynb`
+- `agg_music.ipynb`, `agg_eg.ipynb`, `agg_eg_normal.ipynb`
+- `splink_low_card.ipynb`, `splink_low_card_copy.ipynb`
+
+Figures referenced (e.g., `figures/local_global_architecture.pdf`, `figures/data_generation_pipeline.pdf`, `figures/smallestest_heatmap_local.pdf`) need to be generated from the notebooks and placed in `figures/`.
+
+## Source Mapping
+
+| Report Section | Source Notebooks |
+|----------------|------------------|
+| Data Generation | `generate_data.py`, `data_generator/` |
+| Local Layer (Splink) | `notebooks/old_references/local_notebooks/splink_process.ipynb`, `splink_small.ipynb`, `splink_EM_smallest.ipynb`, `splink_dblp_acm.ipynb`, `splink_music.ipynb` |
+| Global Aggregation (Scalar) | `notebooks/old_references/global_notebooks/splink_agg.ipynb`, `splink_music_agg.ipynb` |
+| Behavioural Aggregation (Vector) | `notebooks/old_references/global_behaviour_notebooks/agg_music.ipynb`, `agg_eg.ipynb`, `agg_eg_normal.ipynb` |
+| Edge Cases (Low Cardinality) | `notebooks/old_references/local_notebooks/splink_low_card.ipynb`, `splink_low_card_copy.ipynb` |
+| Config Variants | `data_generator/*.yaml` |
+| Set Similarities | `latex/report_info_dump/set_similarities.md` |
+
+## Custom Commands (defined in main.tex)
+
+- `\splink` → **Splink**
+- `\fellegisunter` → **Fellegi-Sunter**
+- `\emalgo` → **EM**
+- `\jw` → **Jaro-Winkler**
+- `\globalentity` → **Global Entity**
+- `\localentity` → **Local Entity**
+- `\fscore` → $F_1$

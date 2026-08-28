@@ -1,0 +1,208 @@
+% ============================================================
+% 3. System Implementation \& Tooling
+% ============================================================
+\section{System Implementation \& Tooling}
+\label{sec:implementation}
+
+\subsection{Data Generation: Synthetic Corruption Pipeline}
+\label{sec:data_generation}
+
+The synthetic data generator (\texttt{generate\_data.py}, \texttt{data\_generator/}) creates two datasets A and B with known \globalentity{} overlap.
+The pipeline (\Cref{fig:datagen_pipeline}):
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.2cm,
+        every node/.style={font=\small},
+        box/.style={draw, rectangle, rounded corners, minimum width=3.5cm, minimum height=0.8cm, align=center}
+    ]
+        \node[box, fill=blue!10] (step1) {1. EntitySpaceManager\\Creates $N$ global entities with overlap $\rho$};
+        \node[box, fill=green!10, right=of step1] (step2) {2. Source Mappings $M_A, M_B$\\Assign to datasets (shared/unique)};
+        \node[box, fill=yellow!10, right=of step2] (step3) {3. DataPipelineOrchestrator\\Expands to multiple records/entity};
+        \node[box, fill=orange!10, right=of step3] (step4) {4. Asymmetric Corruption\\Independent noise per source};
+        \node[box, fill=red!10, right=of step4] (step5) {5. Latent IDs Preserved\\(OVER\_*, UNI\_A\_*, UNIQ\_B\_*)};
+        \draw[->, thick] (step1) -- (step2);
+        \draw[->, thick] (step2) -- (step3);
+        \draw[->, thick] (step3) -- (step4);
+        \draw[->, thick] (step4) -- (step5);
+    \end{tikzpicture}
+    \caption{Synthetic Data Generation Pipeline.
+    \textbf{1}: EntitySpaceManager creates a pool of $N$ global entities with overlap rate $\rho$.
+    \textbf{2}: Source mappings $M_A, M_B$ assign entities to each dataset (some shared, some unique).
+    \textbf{3}: DataPipelineOrchestrator expands each entity into multiple records (rows per entity).
+    \textbf{4}: Overlapping entities get independent noise applied per source (asymmetric corruption).
+    \textbf{5}: Latent event IDs (\texttt{OVER\_*}, \texttt{UNI\_A\_*}, \texttt{UNIQ\_B\_*}) preserved for evaluation.}
+    \label{fig:datagen_pipeline}
+\end{figure}
+
+\subsubsection{Configuration (YAML)}
+\label{sec:datagen_config}
+Key parameters (\texttt{data\_generator/config.yaml}):
+\begin{itemize}
+    \item \texttt{dataset\_size}: Total global entities $N$ (e.g., 100 for \texttt{smallestest}).
+    \item \texttt{overlap\_percentage}: Fraction $\rho$ of entities present in both datasets.
+    \item \texttt{source\_a\_rows\_per\_entity}, \texttt{source\_b\_rows\_per\_entity}: Multiplicity (cardinality) per entity per source.
+    \item \texttt{features}: List of $\{ \text{name, type, noise\_params, missing\_rate} \}$.
+        Types: \texttt{categorical} (classes, missing), \texttt{numerical} (Gaussian noise $\sigma$), \texttt{datetime} (Gaussian hours, missing).
+    \item \texttt{overlap\_dropout\_frac}: Asymmetric dropout on overlapping portion of B.
+\end{itemize}
+
+\subsubsection{Noise Models}
+\label{sec:noise_models}
+\begin{itemize}
+    \item \textbf{Categorical}: With probability \texttt{missing\_rate} $\to$ NULL; else with prob $1-\text{rate}$ keep true class, else uniform random other class.
+    \item \textbf{Numerical}: True value $+\ \mathcal{N}(0, \sigma^2)$; missing with \texttt{missing\_rate}.
+    \item \textbf{Datetime}: True timestamp $+\ \mathcal{N}(0, \sigma_{\text{hours}}^2)$ hours; missing with \texttt{missing\_rate}.
+\end{itemize}
+
+\subsubsection{Latent Event IDs}
+Every generated row receives a \texttt{latent\_event\_id}:
+\begin{itemize}
+    \item \texttt{OVER\_k}: Overlapping entities (same $k$ in A and B $\to$ true match).
+    \item \texttt{UNI\_A\_k}: Unique to A.
+    \item \texttt{UNIQ\_B\_k}: Unique to B.
+\end{itemize}
+These enable ground-truth evaluation without manual labelling.
+
+\subsubsection{Configurations Used}
+\label{sec:configs_used}
+\begin{table}[htbp]
+    \centering
+    \caption{Synthetic Data Configurations}
+    \label{tab:configs}
+    \begin{tabular}{lccccc}
+        \toprule
+        \textbf{Config} & $N$ & $\rho$ & Rows/Ent (A) & Rows/Ent (B) & Purpose \\
+        \midrule
+        \texttt{smallestest} & 100 & 0.10 & 100 & 120 & Baseline, fast iteration \\
+        \texttt{smaller} & 1000 & 0.10 & 100 & 120 & Standard \\
+        \texttt{small} & 5000 & 0.10 & 100 & 120 & Scale test \\
+        \texttt{med\_30\_overlap} & 10000 & 0.30 & 100 & 120 & Higher overlap \\
+        \texttt{low\_card} & 100 & 0.10 & 5 & 5 & Low cardinality extreme \\
+        \texttt{c2} & 1000 & 0.10 & 200 & 200 & High cardinality \\
+        \texttt{o50} & 1000 & 0.50 & 100 & 120 & 50\% overlap \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{\splink{} Implementation: Technical Configuration}
+\label{sec:splink_config}
+
+\subsubsection{Comparison Levels}
+\label{sec:comparison_levels}
+Each field gets a \texttt{CustomComparison} with binned levels:
+
+\begin{lstlisting}[language=Python, caption={Numerical Comparison Levels (Percentage Difference)}, label=lst:num_levels]
+comparison_levels = [
+    cll.NullLevel("numerical_noisy"),
+    cll.PercentageDifferenceLevel("numerical_noisy", 0.05),  # <= 5%
+    cll.PercentageDifferenceLevel("numerical_noisy", 0.15),  # <= 15%
+    cll.PercentageDifferenceLevel("numerical_noisy", 0.40),  # <= 40%
+    cll.PercentageDifferenceLevel("numerical_noisy", 0.70),  # <= 70%
+    cll.ElseLevel(),
+]
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={Datetime Comparison Levels (Within N Days)}, label=lst:date_levels]
+within_n_days = "abs(date_diff('day', datetime_noisy_l, datetime_noisy_r)) <= {n}"
+comparison_date = {
+    "output_column_name": "datetime_noisy",
+    "comparison_levels": [
+        cll.NullLevel("datetime_noisy"),
+        {"sql_condition": within_n_days.format(n=0), "label_for_charts": "Same day"},
+        {"sql_condition": within_n_days.format(n=1), "label_for_charts": "<=1 day"},
+        {"sql_condition": within_n_days.format(n=2), "label_for_charts": "<=2 days"},
+        {"sql_condition": within_n_days.format(n=15), "label_for_charts": "<=15 days"},
+        cll.ElseLevel(),
+    ],
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={Categorical Comparison Levels}, label=lst:cat_levels]
+category_levels = [
+    cll.NullLevel("categorical"),
+    cll.ExactMatchLevel("categorical"),
+    cll.ElseLevel(),
+]
+\end{lstlisting}
+
+\subsubsection{Blocking Rules Design}
+\label{sec:blocking_rules}
+Blocking rules are SQL predicates combined in an array passed as \texttt{blocking\_rules\_to\_generate\_predictions}.
+The design principle: \textbf{disjunctive coverage}—each rule targets a different matching signal so their union bounds recall.
+
+\begin{lstlisting}[language=Python, caption={Blocking Rules for Synthetic Data}, label=lst:blocking_rules]
+brs = [
+    # Category match or missing
+    "l.categorical = r.categorical OR l.categorical IS NULL OR r.categorical IS NULL",
+    # Month match or missing
+    "strftime(l.datetime_noisy, '%Y%m') = strftime(r.datetime_noisy, '%Y%m')
+     OR l.datetime_noisy IS NULL OR r.datetime_noisy IS NULL",
+    # Numerical within 25% or missing
+    "(ABS(l.numerical_noisy - r.numerical_noisy) / NULLIF(
+        CASE WHEN l.numerical_noisy > r.numerical_noisy
+             THEN l.numerical_noisy ELSE r.numerical_noisy END, 0)) < 0.25
+     OR l.numerical_noisy IS NULL OR r.numerical_noisy IS NULL",
+    # Date shift +/-15 days or missing
+    "strftime(CAST(l.datetime_noisy AS TIMESTAMP) + INTERVAL '15' DAY, '%Y%m')
+     = strftime(CAST(r.datetime_noisy AS TIMESTAMP), '%Y%m')
+     OR l.datetime_noisy IS NULL OR r.datetime_noisy IS NULL",
+    "strftime(CAST(l.datetime_noisy AS TIMESTAMP) - INTERVAL '15' DAY, '%Y%m')
+     = strftime(CAST(r.datetime_noisy AS TIMESTAMP), '%Y%m')
+     OR l.datetime_noisy IS NULL OR r.datetime_noisy IS NULL",
+]
+\end{lstlisting}
+
+\subsubsection{EM Training Schedule}
+\label{sec:em_training}
+Parameter estimation proceeds in rounds, each using a different blocking rule to ``unlock'' comparisons:
+
+\begin{enumerate}
+    \item \texttt{estimate\_probability\_two\_random\_records\_match(strict\_rule, recall=0.99)} $\to$ initial $\pi$
+    \item \texttt{estimate\_u\_using\_random\_sampling(max\_pairs=1e7)} $\to$ baseline $u$-probs
+    \item \texttt{estimate\_parameters\_using\_expectation\_maximisation(block\_on("datetime"))} $\to$ $m$-probs for numerical, categorical
+    \item \texttt{estimate\_parameters\_using\_expectation\_maximisation(block\_on("categorical"))} $\to$ $m$-probs for datetime, numerical
+    \item (Optional) Additional \emalgo{} rounds with other blocking rules until convergence.
+\end{enumerate}
+
+\subsubsection{DuckDB Resource Configuration}
+\label{sec:duckdb_config}
+\begin{lstlisting}[language=Python, caption={DuckDB Connection with Resource Limits}, label=lst:duckdb]
+import duckdb
+con = duckdb.connect(database="splink_temp_workspace.duckdb")
+con.execute("SET memory_limit = '24GB';")
+con.execute("SET temp_directory = './duckdb_spill_dir.tmp';")
+db_api = DuckDBAPI(connection=con)
+\end{lstlisting}
+
+\subsection{Global Aggregation Engine}
+\label{sec:agg_engine_impl}
+
+The \texttt{aggregation} package (\texttt{em/aggregation/}) implements the vector-space aggregation approach:
+
+\begin{itemize}
+    \item \textbf{ProcessorRegistry}: Maps type strings (\texttt{"numerical"}, \texttt{"categorical"}, \texttt{"set\_union"}) to \texttt{ColumnProcessor} subclasses.
+    \item \textbf{ColumnProcessor} (abstract base): \texttt{get\_agg\_func()}, \texttt{fit\_vocab(df1, df2)}, \texttt{post\_process(df\_agg)}.
+    \item \textbf{Aggregator}: Coordinates multiple processors; \texttt{fit(df1, df2)} builds vocabularies; \texttt{transform(df, label)} groups by \texttt{unique\_id\_col}, applies agg funcs, runs post-processors.
+    \item \textbf{Outputs per type}:
+    \begin{itemize}
+        \item \texttt{numerical}: mean, min, max (for range overlap comparison)
+        \item \texttt{categorical}: token list + frequency vector (for cosine/Jaccard)
+        \item \texttt{set\_union}: union of set elements across records
+    \end{itemize}
+\end{itemize}
+
+Usage in \texttt{agg\_music.ipynb} (\Cref{sec:behavioural_agg}):
+\begin{lstlisting}[language=Python, caption={Aggregator Instantiation for Music Data}, label=lst:agg_music]
+type_groups = ["numerical", "categorical", "set_union"]
+col_groups = [
+    ["numerical_noisy"],
+    ["categorical_title", "categorical_album", "language", "categorical_number"],
+    ["year_options"]
+]
+agg = Aggregator(type_groups=type_groups, col_groups=col_groups, unique_id_col="artist")
+agg.fit(df1_processed, df2_processed)
+aggregated_df1 = agg.transform(df1_processed, "music_catalog_df1")
+aggregated_df2 = agg.transform(df2_processed, "music_catalog_df2")
+\end{lstlisting}

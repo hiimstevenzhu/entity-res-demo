@@ -1,0 +1,14 @@
+% ============================================================
+% Abstract
+% ============================================================
+\begin{abstract}
+Entity resolution (ER) at scale presents fundamental challenges in unsupervised settings where ground truth labels are unavailable. This report details a hybrid methodology combining local probabilistic record linkage via the \fellegisunter{} model—implemented through \splink{} with expectation-maximisation parameter estimation—with global aggregation functions to resolve entity identity across multiple data sources.
+
+We operate under a specific constraint set: (1) the end goal is \globalentity{} resolution across two datasets, (2) the setting is fully unsupervised, (3) identifiers defining \globalentity{}s are stable within each dataset but may differ between datasets, and (4) attributes are textual, numerical, and temporal—scoping out semantic LLM-based matching and behavioural graph-network approaches.
+
+The local layer uses \splink{} with custom comparison levels (exact, fuzzy via \jw{}, percentage-difference, temporal windows) and blocking rules designed to bound recall. The global layer explores aggregation functions including naive sum, expected-score normalisation, noisy-OR, and max-over-partitions to collapse local pairwise scores into \globalentity{}-level decisions.
+
+Experiments on synthetic data (configurable corruption regimes, varying cardinality) and public datasets (DBLP-ACM bibliographic records, MusicBrainz voter records) demonstrate that the hybrid approach achieves strong precision-recall trade-offs when assumptions hold. Sensitivity analysis reveals the critical role of blocking-rule recall bounds and estimation-parameter initialisation. At low cardinality, combinatorial explosion breaks the independence assumptions of the \fellegisunter{} model; we propose a secondary \splink{} layer over orthogonal similarity scores as a mitigation.
+
+Key contributions: (a) a formalised local-to-global ER framework with explicit assumptions, (b) \splink{} implementation patterns for unsupervised EM with recall-bounded blocking, (c) aggregation taxonomy with theoretical grounding, and (d) failure-mode analysis with a Layer-2 mitigation proposal.
+\end{abstract}

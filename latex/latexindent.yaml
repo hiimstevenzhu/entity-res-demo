@@ -1,0 +1,9 @@
+defaultIndent: '  '
+maximumIndentation: '  '
+indentAfterItems: 1
+itemNames: ['section', 'subsection', 'subsubsection', 'paragraph', 'subparagraph']
+modifyLineBreaks:
+  enabled: 1
+  oneSentencePerLine:
+    sentenceEndWith: '\\.'
+    xIndent: '  '

@@ -1,0 +1,482 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{6}{section.1}\protected@file@percent }
+\newlabel{sec:introduction}{{1}{6}{Introduction}{section.1}{}}
+\newlabel{sec:introduction@cref}{{[section][1][]1}{[1][6][]6}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Problem Statement}{6}{subsection.1.1}\protected@file@percent }
+\newlabel{sec:problem_statement}{{1.1}{6}{Problem Statement}{subsection.1.1}{}}
+\newlabel{sec:problem_statement@cref}{{[subsection][1][1]1.1}{[1][6][]6}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Contributions}{6}{subsection.1.2}\protected@file@percent }
+\newlabel{sec:contributions}{{1.2}{6}{Contributions}{subsection.1.2}{}}
+\newlabel{sec:contributions@cref}{{[subsection][2][1]1.2}{[1][6][]6}}
+\citation{fellegi1969theory}
+\citation{splink2024}
+\citation{winkler1993improved}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}Report Structure}{7}{subsection.1.3}\protected@file@percent }
+\newlabel{sec:structure}{{1.3}{7}{Report Structure}{subsection.1.3}{}}
+\newlabel{sec:structure@cref}{{[subsection][3][1]1.3}{[1][7][]7}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Theoretical Framework \& Methodology}{7}{section.2}\protected@file@percent }
+\newlabel{sec:framework}{{2}{7}{Theoretical Framework \& Methodology}{section.2}{}}
+\newlabel{sec:framework@cref}{{[section][2][]2}{[1][7][]7}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Foundations: The Fellegi-Sunter Probabilistic Model}{7}{subsection.2.1}\protected@file@percent }
+\newlabel{sec:fs_foundations}{{2.1}{7}{Foundations: The Fellegi-Sunter Probabilistic Model}{subsection.2.1}{}}
+\newlabel{sec:fs_foundations@cref}{{[subsection][1][2]2.1}{[1][7][]7}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.1.1}Model Setup}{7}{subsubsection.2.1.1}\protected@file@percent }
+\citation{dempster1977maximum}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.1.2}Match Weight and Posterior Probability}{8}{subsubsection.2.1.2}\protected@file@percent }
+\newlabel{eq:posterior}{{3}{8}{Match Weight and Posterior Probability}{equation.2.3}{}}
+\newlabel{eq:posterior@cref}{{[equation][3][]3}{[1][8][]8}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.1.3}Parameter Estimation}{8}{subsubsection.2.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Two Frameworks for Global Entity Resolution}{8}{subsection.2.2}\protected@file@percent }
+\newlabel{sec:two_frameworks_overview}{{2.2}{8}{Two Frameworks for Global Entity Resolution}{subsection.2.2}{}}
+\newlabel{sec:two_frameworks_overview@cref}{{[subsection][2][2]2.2}{[1][8][]8}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Framework 1 (Score Aggregation). Records are compared pairwise by Fellegi-Sunter, producing per-field comparison levels $\gamma _k$ and a matrix of match probabilities $P$ per global entity pair. Scalar aggregation (e.g., Noisy-OR) yields a global score. For $(e_1,e_1)$, multiple corroborating buy-buy pairs drive the score $\approx 1$; for $(e_2,e_2)$, a single buy-sell mismatch yields a low score.\relax }}{9}{figure.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:framework1_score_agg}{{1}{9}{Framework 1 (Score Aggregation). Records are compared pairwise by Fellegi-Sunter, producing per-field comparison levels $\gamma _k$ and a matrix of match probabilities $P$ per global entity pair. Scalar aggregation (e.g., Noisy-OR) yields a global score. For $(e_1,e_1)$, multiple corroborating buy-buy pairs drive the score $\approx 1$; for $(e_2,e_2)$, a single buy-sell mismatch yields a low score.\relax }{figure.caption.1}{}}
+\newlabel{fig:framework1_score_agg@cref}{{[figure][1][]1}{[1][8][]9}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Framework 2 (Profile Aggregation). Records are first aggregated per entity into profiles (sets of actions, datetime ranges, frequency vectors). Set similarity metrics (Soft Jaccard, Monge-Elkan, Simpson, Range Overlap) compute per-dimension similarities $\mathbf  {x} = (x_1,\dots  ,x_D)$. A Fellegi-Sunter model then learns discriminative weights and outputs calibrated posteriors. For $(e_1,e_1)$, overlapping actions and close datetimes yield high similarity; for $(e_2,e_2)$, disjoint actions yield near-zero similarity.\relax }}{9}{figure.caption.2}\protected@file@percent }
+\newlabel{fig:framework2_profile_agg}{{2}{9}{Framework 2 (Profile Aggregation). Records are first aggregated per entity into profiles (sets of actions, datetime ranges, frequency vectors). Set similarity metrics (Soft Jaccard, Monge-Elkan, Simpson, Range Overlap) compute per-dimension similarities $\mathbf {x} = (x_1,\dots ,x_D)$. A Fellegi-Sunter model then learns discriminative weights and outputs calibrated posteriors. For $(e_1,e_1)$, overlapping actions and close datetimes yield high similarity; for $(e_2,e_2)$, disjoint actions yield near-zero similarity.\relax }{figure.caption.2}{}}
+\newlabel{fig:framework2_profile_agg@cref}{{[figure][2][]2}{[1][8][]9}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Framework Comparison\relax }}{10}{table.caption.3}\protected@file@percent }
+\newlabel{tab:framework_comparison}{{1}{10}{Framework Comparison\relax }{table.caption.3}{}}
+\newlabel{tab:framework_comparison@cref}{{[table][1][]1}{[1][8][]10}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Framework 1: Score Aggregation (Local $\to $ Global)}{10}{subsection.2.3}\protected@file@percent }
+\newlabel{sec:score_aggregation}{{2.3}{10}{Framework 1: Score Aggregation (Local $\to $ Global)}{subsection.2.3}{}}
+\newlabel{sec:score_aggregation@cref}{{[subsection][3][2]2.3}{[1][8][]10}}
+\newlabel{sec:agg_functions}{{2.3}{10}{Framework 1: Score Aggregation (Local $\to $ Global)}{subsection.2.3}{}}
+\newlabel{sec:agg_functions@cref}{{[subsection][3][2]2.3}{[1][8][]10}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.1}Local Column Comparison Functions (Framework 1 Input)}{10}{subsubsection.2.3.1}\protected@file@percent }
+\newlabel{sec:local_column_similarities}{{2.3.1}{10}{Local Column Comparison Functions (Framework 1 Input)}{subsubsection.2.3.1}{}}
+\newlabel{sec:local_column_similarities@cref}{{[subsubsection][1][2,3]2.3.1}{[1][10][]10}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.2}Aggregation Functions}{10}{subsubsection.2.3.2}\protected@file@percent }
+\newlabel{sec:aggregation_functions}{{2.3.2}{10}{Aggregation Functions}{subsubsection.2.3.2}{}}
+\newlabel{sec:aggregation_functions@cref}{{[subsubsection][2][2,3]2.3.2}{[1][10][]10}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.3}Extension: Using aggregation functions as second-level comparisons}{11}{subsubsection.2.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{An analagous approach:}{11}{subsubsection.2.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Beneficial Double-Counting (Probabilitive Voting):}{11}{subsubsection.2.3.3}\protected@file@percent }
+\citation{winkler1989frequency}
+\@writefile{toc}{\contentsline {paragraph}{Prioritisation of Ranking Over Absolute Calibration:}{12}{subsubsection.2.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Framework 2: Profile Aggregation (Behavioural Profile Matching)}{12}{subsection.2.4}\protected@file@percent }
+\newlabel{sec:profile_aggregation}{{2.4}{12}{Framework 2: Profile Aggregation (Behavioural Profile Matching)}{subsection.2.4}{}}
+\newlabel{sec:profile_aggregation@cref}{{[subsection][4][2]2.4}{[1][12][]12}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.1}Behavioural Profile Construction}{12}{subsubsection.2.4.1}\protected@file@percent }
+\newlabel{sec:profile_construction}{{2.4.1}{12}{Behavioural Profile Construction}{subsubsection.2.4.1}{}}
+\newlabel{sec:profile_construction@cref}{{[subsubsection][1][2,4]2.4.1}{[1][12][]12}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.2}Profile Matching: Set Similarity on Profiles}{12}{subsubsection.2.4.2}\protected@file@percent }
+\newlabel{sec:profile_matching}{{2.4.2}{12}{Profile Matching: Set Similarity on Profiles}{subsubsection.2.4.2}{}}
+\newlabel{sec:profile_matching@cref}{{[subsubsection][2][2,4]2.4.2}{[1][12][]12}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.3}Applying Splink to Profile Vectors}{13}{subsubsection.2.4.3}\protected@file@percent }
+\newlabel{sec:profile_splink}{{2.4.3}{13}{Applying Splink to Profile Vectors}{subsubsection.2.4.3}{}}
+\newlabel{sec:profile_splink@cref}{{[subsubsection][3][2,4]2.4.3}{[1][12][]13}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.4}Set Similarity Comparison Functions}{13}{subsubsection.2.4.4}\protected@file@percent }
+\newlabel{sec:set_similarities}{{2.4.4}{13}{Set Similarity Comparison Functions}{subsubsection.2.4.4}{}}
+\newlabel{sec:set_similarities@cref}{{[subsubsection][4][2,4]2.4.4}{[1][13][]13}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.5}Numerical Range Overlap}{13}{subsubsection.2.4.5}\protected@file@percent }
+\newlabel{sec:num_range_overlap}{{2.4.5}{13}{Numerical Range Overlap}{subsubsection.2.4.5}{}}
+\newlabel{sec:num_range_overlap@cref}{{[subsubsection][5][2,4]2.4.5}{[1][13][]13}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Blocking Strategy \& Parameter Estimation Pipeline}{14}{subsection.2.5}\protected@file@percent }
+\newlabel{sec:blocking_theory}{{2.5}{14}{Blocking Strategy \& Parameter Estimation Pipeline}{subsection.2.5}{}}
+\newlabel{sec:blocking_theory@cref}{{[subsection][5][2]2.5}{[1][13][]14}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.5.1}Underlying Probabilities: $m$, $u$, and the Prior $\lambda $}{14}{subsubsection.2.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.5.2}Operational Blocking Stages and Mathematical Rationales}{14}{subsubsection.2.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Stage 1: Estimating the Prior (\texttt  {estimate\_probability\_two\_random\_records\_match})}{14}{subsubsection.2.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Stage 2: Estimating $m$-probabilities via Expectation-Maximisation}{15}{equation.2.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Stage 3: Prediction and Inference (\texttt  {linker.predict()})}{15}{equation.2.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}System Implementation \& Tooling}{16}{section.3}\protected@file@percent }
+\newlabel{sec:implementation}{{3}{16}{System Implementation \& Tooling}{section.3}{}}
+\newlabel{sec:implementation@cref}{{[section][3][]3}{[1][16][]16}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Data Generation: Synthetic Corruption Pipeline}{16}{subsection.3.1}\protected@file@percent }
+\newlabel{sec:data_generation}{{3.1}{16}{Data Generation: Synthetic Corruption Pipeline}{subsection.3.1}{}}
+\newlabel{sec:data_generation@cref}{{[subsection][1][3]3.1}{[1][16][]16}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Synthetic Data Generation Pipeline. Vertical stages show the transformation from entity pool $\to $ split datasets $\to $ multi-record expansion $\to $ independent corruption $\to $ ground-truth keys. Each stage is a separable, testable component in the codebase.\relax }}{16}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:datagen_pipeline}{{3}{16}{Synthetic Data Generation Pipeline. Vertical stages show the transformation from entity pool $\to $ split datasets $\to $ multi-record expansion $\to $ independent corruption $\to $ ground-truth keys. Each stage is a separable, testable component in the codebase.\relax }{figure.caption.4}{}}
+\newlabel{fig:datagen_pipeline@cref}{{[figure][3][]3}{[1][16][]16}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.1.1}Configuration (YAML)}{16}{subsubsection.3.1.1}\protected@file@percent }
+\newlabel{sec:datagen_config}{{3.1.1}{16}{Configuration (YAML)}{subsubsection.3.1.1}{}}
+\newlabel{sec:datagen_config@cref}{{[subsubsection][1][3,1]3.1.1}{[1][16][]16}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.1.2}Noise Models}{17}{subsubsection.3.1.2}\protected@file@percent }
+\newlabel{sec:noise_models}{{3.1.2}{17}{Noise Models}{subsubsection.3.1.2}{}}
+\newlabel{sec:noise_models@cref}{{[subsubsection][2][3,1]3.1.2}{[1][17][]17}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.1.3}Latent Event IDs}{17}{subsubsection.3.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Profile Aggregation Engine}{17}{subsection.3.2}\protected@file@percent }
+\newlabel{sec:agg_profile_engine}{{3.2}{17}{Profile Aggregation Engine}{subsection.3.2}{}}
+\newlabel{sec:agg_profile_engine@cref}{{[subsection][2][3]3.2}{[1][17][]17}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Horizontal flow of the profile aggregation engine: raw records are grouped by entity identifier and transformed into fixed‑dimensional profile vectors.\relax }}{17}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:profile_agg_flow}{{4}{17}{Horizontal flow of the profile aggregation engine: raw records are grouped by entity identifier and transformed into fixed‑dimensional profile vectors.\relax }{figure.caption.5}{}}
+\newlabel{fig:profile_agg_flow@cref}{{[figure][4][]4}{[1][17][]17}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Splink Configuration Overview}{17}{subsection.3.3}\protected@file@percent }
+\newlabel{sec:splink_config}{{3.3}{17}{Splink Configuration Overview}{subsection.3.3}{}}
+\newlabel{sec:splink_config@cref}{{[subsection][3][3]3.3}{[1][17][]17}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Blocking Rules Design}{18}{subsection.3.4}\protected@file@percent }
+\newlabel{sec:blocking_rules}{{3.4}{18}{Blocking Rules Design}{subsection.3.4}{}}
+\newlabel{sec:blocking_rules@cref}{{[subsection][4][3]3.4}{[1][18][]18}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}EM Training Schedule}{18}{subsection.3.5}\protected@file@percent }
+\newlabel{sec:em_training}{{3.5}{18}{EM Training Schedule}{subsection.3.5}{}}
+\newlabel{sec:em_training@cref}{{[subsection][5][3]3.5}{[1][18][]18}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Experimental Methodology}{18}{section.4}\protected@file@percent }
+\newlabel{sec:methodology}{{4}{18}{Experimental Methodology}{section.4}{}}
+\newlabel{sec:methodology@cref}{{[section][4][]4}{[1][18][]18}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Datasets}{18}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:datasets}{{4.1}{18}{Datasets}{subsection.4.1}{}}
+\newlabel{sec:datasets@cref}{{[subsection][1][4]4.1}{[1][18][]18}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Datasets Used in Experiments\relax }}{18}{table.caption.6}\protected@file@percent }
+\newlabel{tab:datasets}{{2}{18}{Datasets Used in Experiments\relax }{table.caption.6}{}}
+\newlabel{tab:datasets@cref}{{[table][2][]2}{[1][18][]18}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Evaluation Protocol}{19}{subsection.4.2}\protected@file@percent }
+\newlabel{sec:evaluation_protocol}{{4.2}{19}{Evaluation Protocol}{subsection.4.2}{}}
+\newlabel{sec:evaluation_protocol@cref}{{[subsection][2][4]4.2}{[1][18][]19}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.1}Synthetic Data: Ground-Truth Available}{19}{subsubsection.4.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.2}Public Data: No Ground Truth}{19}{subsubsection.4.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.3}Metrics}{19}{subsubsection.4.2.3}\protected@file@percent }
+\newlabel{sec:metrics}{{4.2.3}{19}{Metrics}{subsubsection.4.2.3}{}}
+\newlabel{sec:metrics@cref}{{[subsubsection][3][4,2]4.2.3}{[1][19][]19}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Baselines and Ablations}{19}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:baselines}{{4.3}{19}{Baselines and Ablations}{subsection.4.3}{}}
+\newlabel{sec:baselines@cref}{{[subsection][3][4]4.3}{[1][19][]19}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Computational Environment}{19}{subsection.4.4}\protected@file@percent }
+\newlabel{sec:compute_env}{{4.4}{19}{Computational Environment}{subsection.4.4}{}}
+\newlabel{sec:compute_env@cref}{{[subsection][4][4]4.4}{[1][19][]19}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Experimental Results \& Discussion}{20}{section.5}\protected@file@percent }
+\newlabel{sec:results}{{5}{20}{Experimental Results \& Discussion}{section.5}{}}
+\newlabel{sec:results@cref}{{[section][5][]5}{[1][20][]20}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Experiment 1: \texttt  {base} Synthetic Dataset - \texttt  {splink\_local\_demo.ipynb}}{20}{subsection.5.1}\protected@file@percent }
+\newlabel{sec:exp_smaller}{{5.1}{20}{Experiment 1: \texttt {base} Synthetic Dataset - \texttt {splink\_local\_demo.ipynb}}{subsection.5.1}{}}
+\newlabel{sec:exp_smaller@cref}{{[subsection][1][5]5.1}{[1][20][]20}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.1.1}Dataset Description}{20}{subsubsection.5.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.1.2}Blocking Rules Design}{20}{subsubsection.5.1.2}\protected@file@percent }
+\newlabel{sec:blocking_rules_exp1}{{5.1.2}{20}{Blocking Rules Design}{subsubsection.5.1.2}{}}
+\newlabel{sec:blocking_rules_exp1@cref}{{[subsubsection][2][5,1]5.1.2}{[1][20][]20}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.1.3}Comparison Levels}{20}{subsubsection.5.1.3}\protected@file@percent }
+\newlabel{sec:comparison_levels_exp1}{{5.1.3}{20}{Comparison Levels}{subsubsection.5.1.3}{}}
+\newlabel{sec:comparison_levels_exp1@cref}{{[subsubsection][3][5,1]5.1.3}{[1][20][]20}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.1.4}Local Pairwise Matching Results}{20}{subsubsection.5.1.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Match weights chart showing m-probability, u-probability, bayes factor, and log2 bayes factor for each comparison level in the small synthetic dataset.\relax }}{21}{figure.caption.7}\protected@file@percent }
+\newlabel{fig:match_weights_smaller}{{5}{21}{Match weights chart showing m-probability, u-probability, bayes factor, and log2 bayes factor for each comparison level in the small synthetic dataset.\relax }{figure.caption.7}{}}
+\newlabel{fig:match_weights_smaller@cref}{{[figure][5][]5}{[1][20][]21}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Threshold selection curve showing precision, recall, and F1 score as functions of the match probability threshold for the small synthetic dataset. The curve illustrates the trade-off between precision and recall across different threshold values.\relax }}{22}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:threshold_curve_smaller}{{6}{22}{Threshold selection curve showing precision, recall, and F1 score as functions of the match probability threshold for the small synthetic dataset. The curve illustrates the trade-off between precision and recall across different threshold values.\relax }{figure.caption.8}{}}
+\newlabel{fig:threshold_curve_smaller@cref}{{[figure][6][]6}{[1][21][]22}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.1.5}Threshold Selection and Results}{22}{subsubsection.5.1.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.1.6}Local matching - Discussion}{22}{subsubsection.5.1.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.1.7}Blocking Efficiency}{22}{subsubsection.5.1.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.1.8}Local-to-Global Aggregation Analysis}{22}{subsubsection.5.1.8}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Aggregation score heatmaps showing various aggregation strategies (sum, max, top-k mean, noisy-or, softmax, match density, weighted Jaccard, weighted overlap, score-probability expected ratio) between entities in the base synthetic dataset, demonstrating the theoretical framework's aggregation functions in practice.\relax }}{23}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:aggregation_heatmaps_base}{{7}{23}{Aggregation score heatmaps showing various aggregation strategies (sum, max, top-k mean, noisy-or, softmax, match density, weighted Jaccard, weighted overlap, score-probability expected ratio) between entities in the base synthetic dataset, demonstrating the theoretical framework's aggregation functions in practice.\relax }{figure.caption.9}{}}
+\newlabel{fig:aggregation_heatmaps_base@cref}{{[figure][7][]7}{[1][23][]23}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the base synthetic dataset, demonstrating performance across the theoretical framework's aggregation functions.\relax }}{24}{figure.caption.10}\protected@file@percent }
+\newlabel{fig:threshold_evaluation_base}{{8}{24}{Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the base synthetic dataset, demonstrating performance across the theoretical framework's aggregation functions.\relax }{figure.caption.10}{}}
+\newlabel{fig:threshold_evaluation_base@cref}{{[figure][8][]8}{[1][23][]24}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.1.9}Global Aggregation - Discussion}{24}{subsubsection.5.1.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Experiment 2: Synthetic Dataset Variants}{24}{subsection.5.2}\protected@file@percent }
+\newlabel{sec:exp_variants}{{5.2}{24}{Experiment 2: Synthetic Dataset Variants}{subsection.5.2}{}}
+\newlabel{sec:exp_variants@cref}{{[subsection][2][5]5.2}{[1][24][]24}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.1}Variant Overview}{24}{subsubsection.5.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.2}Configuration}{25}{subsubsection.5.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.3}Results Summary}{25}{subsubsection.5.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.4}Intent}{25}{subsubsection.5.2.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.5}smallest Variant}{25}{subsubsection.5.2.5}\protected@file@percent }
+\newlabel{sec:exp_smallest}{{5.2.5}{25}{smallest Variant}{subsubsection.5.2.5}{}}
+\newlabel{sec:exp_smallest@cref}{{[subsubsection][5][5,2]5.2.5}{[1][25][]25}}
+\@writefile{toc}{\contentsline {paragraph}{Dataset Description}{25}{subsubsection.5.2.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Results}{25}{subsubsection.5.2.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Match weights chart for the smallest variant (50 entities, 10\% overlap, 30/35 cardinality).\relax }}{25}{figure.caption.11}\protected@file@percent }
+\newlabel{fig:match_weights_smallest}{{9}{25}{Match weights chart for the smallest variant (50 entities, 10\% overlap, 30/35 cardinality).\relax }{figure.caption.11}{}}
+\newlabel{fig:match_weights_smallest@cref}{{[figure][9][]9}{[1][25][]25}}
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Threshold selection curve for the smallest variant.\relax }}{26}{figure.caption.12}\protected@file@percent }
+\newlabel{fig:threshold_curve_smallest}{{10}{26}{Threshold selection curve for the smallest variant.\relax }{figure.caption.12}{}}
+\newlabel{fig:threshold_curve_smallest@cref}{{[figure][10][]10}{[1][25][]26}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.6}Local-to-Global Aggregation Analysis}{26}{subsubsection.5.2.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces Aggregation score heatmaps showing various aggregation strategies (sum, max, top-k mean, noisy-or, softmax, match density, weighted Jaccard, weighted overlap, score-probability expected ratio) between entities in the smallest variant dataset, demonstrating the theoretical framework's aggregation functions in practice.\relax }}{27}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:aggregation_heatmaps_smallest}{{11}{27}{Aggregation score heatmaps showing various aggregation strategies (sum, max, top-k mean, noisy-or, softmax, match density, weighted Jaccard, weighted overlap, score-probability expected ratio) between entities in the smallest variant dataset, demonstrating the theoretical framework's aggregation functions in practice.\relax }{figure.caption.13}{}}
+\newlabel{fig:aggregation_heatmaps_smallest@cref}{{[figure][11][]11}{[1][26][]27}}
+\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the smallest variant dataset, demonstrating performance across the theoretical framework's aggregation functions.\relax }}{28}{figure.caption.14}\protected@file@percent }
+\newlabel{fig:threshold_evaluation_smallest}{{12}{28}{Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the smallest variant dataset, demonstrating performance across the theoretical framework's aggregation functions.\relax }{figure.caption.14}{}}
+\newlabel{fig:threshold_evaluation_smallest@cref}{{[figure][12][]12}{[1][27][]28}}
+\@writefile{toc}{\contentsline {paragraph}{Discussion}{28}{figure.caption.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.7}low\_card Variant}{28}{subsubsection.5.2.7}\protected@file@percent }
+\newlabel{sec:exp_low_card}{{5.2.7}{28}{low\_card Variant}{subsubsection.5.2.7}{}}
+\newlabel{sec:exp_low_card@cref}{{[subsubsection][7][5,2]5.2.7}{[1][28][]28}}
+\@writefile{toc}{\contentsline {paragraph}{Dataset Description}{28}{subsubsection.5.2.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Results}{28}{subsubsection.5.2.7}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces Match weights chart for the low\_card variant (100 entities, 10\% overlap, 5/5 cardinality).\relax }}{29}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:match_weights_low_card}{{13}{29}{Match weights chart for the low\_card variant (100 entities, 10\% overlap, 5/5 cardinality).\relax }{figure.caption.15}{}}
+\newlabel{fig:match_weights_low_card@cref}{{[figure][13][]13}{[1][28][]29}}
+\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces Threshold selection curve for the low\_card variant.\relax }}{29}{figure.caption.16}\protected@file@percent }
+\newlabel{fig:threshold_curve_low_card}{{14}{29}{Threshold selection curve for the low\_card variant.\relax }{figure.caption.16}{}}
+\newlabel{fig:threshold_curve_low_card@cref}{{[figure][14][]14}{[1][29][]29}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.8}Local-to-Global Aggregation Analysis}{29}{subsubsection.5.2.8}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {15}{\ignorespaces Aggregation score heatmaps showing various aggregation strategies (sum, max, top-k mean, noisy-or, softmax, match density, weighted Jaccard, weighted overlap, score-probability expected ratio) between entities in the low\_card variant dataset, demonstrating the theoretical framework's aggregation functions in practice.\relax }}{30}{figure.caption.17}\protected@file@percent }
+\newlabel{fig:aggregation_heatmaps_low_card}{{15}{30}{Aggregation score heatmaps showing various aggregation strategies (sum, max, top-k mean, noisy-or, softmax, match density, weighted Jaccard, weighted overlap, score-probability expected ratio) between entities in the low\_card variant dataset, demonstrating the theoretical framework's aggregation functions in practice.\relax }{figure.caption.17}{}}
+\newlabel{fig:aggregation_heatmaps_low_card@cref}{{[figure][15][]15}{[1][29][]30}}
+\@writefile{lof}{\contentsline {figure}{\numberline {16}{\ignorespaces Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the low\_card variant dataset, demonstrating performance across the theoretical framework's aggregation functions.\relax }}{31}{figure.caption.18}\protected@file@percent }
+\newlabel{fig:threshold_evaluation_low_card}{{16}{31}{Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the low\_card variant dataset, demonstrating performance across the theoretical framework's aggregation functions.\relax }{figure.caption.18}{}}
+\newlabel{fig:threshold_evaluation_low_card@cref}{{[figure][16][]16}{[1][30][]31}}
+\@writefile{toc}{\contentsline {paragraph}{Discussion}{31}{figure.caption.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.9}o50 Variant}{31}{subsubsection.5.2.9}\protected@file@percent }
+\newlabel{sec:exp_o50}{{5.2.9}{31}{o50 Variant}{subsubsection.5.2.9}{}}
+\newlabel{sec:exp_o50@cref}{{[subsubsection][9][5,2]5.2.9}{[1][31][]31}}
+\@writefile{toc}{\contentsline {paragraph}{Dataset Description}{31}{subsubsection.5.2.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Results}{31}{subsubsection.5.2.9}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {17}{\ignorespaces Match weights chart for the o50 variant (50 entities, 50\% overlap, 30/35 cardinality).\relax }}{32}{figure.caption.19}\protected@file@percent }
+\newlabel{fig:match_weights_o50}{{17}{32}{Match weights chart for the o50 variant (50 entities, 50\% overlap, 30/35 cardinality).\relax }{figure.caption.19}{}}
+\newlabel{fig:match_weights_o50@cref}{{[figure][17][]17}{[1][31][]32}}
+\@writefile{lof}{\contentsline {figure}{\numberline {18}{\ignorespaces Threshold selection curve for the o50 variant.\relax }}{32}{figure.caption.20}\protected@file@percent }
+\newlabel{fig:threshold_curve_o50}{{18}{32}{Threshold selection curve for the o50 variant.\relax }{figure.caption.20}{}}
+\newlabel{fig:threshold_curve_o50@cref}{{[figure][18][]18}{[1][32][]32}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.10}Local-to-Global Aggregation Analysis}{32}{subsubsection.5.2.10}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {19}{\ignorespaces Aggregation score heatmaps showing various aggregation strategies (sum, max, top-k mean, noisy-or, softmax, match density, weighted Jaccard, weighted overlap, score-probability expected ratio) between entities in the o50 variant dataset, demonstrating the theoretical framework's aggregation functions in practice.\relax }}{33}{figure.caption.21}\protected@file@percent }
+\newlabel{fig:aggregation_heatmaps_o50}{{19}{33}{Aggregation score heatmaps showing various aggregation strategies (sum, max, top-k mean, noisy-or, softmax, match density, weighted Jaccard, weighted overlap, score-probability expected ratio) between entities in the o50 variant dataset, demonstrating the theoretical framework's aggregation functions in practice.\relax }{figure.caption.21}{}}
+\newlabel{fig:aggregation_heatmaps_o50@cref}{{[figure][19][]19}{[1][32][]33}}
+\@writefile{lof}{\contentsline {figure}{\numberline {20}{\ignorespaces Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the o50 variant dataset, demonstrating performance across the theoretical framework's aggregation functions.\relax }}{34}{figure.caption.22}\protected@file@percent }
+\newlabel{fig:threshold_evaluation_o50}{{20}{34}{Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the o50 variant dataset, demonstrating performance across the theoretical framework's aggregation functions.\relax }{figure.caption.22}{}}
+\newlabel{fig:threshold_evaluation_o50@cref}{{[figure][20][]20}{[1][33][]34}}
+\@writefile{toc}{\contentsline {paragraph}{Discussion}{34}{figure.caption.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Experiment 3: Public Dataset Validation: MusicBrainz}{34}{subsection.5.3}\protected@file@percent }
+\newlabel{sec:exp_musicbrainz}{{5.3}{34}{Experiment 3: Public Dataset Validation: MusicBrainz}{subsection.5.3}{}}
+\newlabel{sec:exp_musicbrainz@cref}{{[subsection][3][5]5.3}{[1][34][]34}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.3.1}Description}{34}{subsubsection.5.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.3.2}Configuration}{34}{subsubsection.5.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.3.3}Blocking Efficiency}{35}{subsubsection.5.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Pre local-to-global matching}{35}{subsubsection.5.3.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {21}{\ignorespaces Match weights chart showing m-probability, u-probability, bayes factor, and log2 bayes factor for each comparison level in the MusicBrainz dataset.\relax }}{36}{figure.caption.23}\protected@file@percent }
+\newlabel{fig:match_weights_music}{{21}{36}{Match weights chart showing m-probability, u-probability, bayes factor, and log2 bayes factor for each comparison level in the MusicBrainz dataset.\relax }{figure.caption.23}{}}
+\newlabel{fig:match_weights_music@cref}{{[figure][21][]21}{[1][35][]36}}
+\@writefile{lof}{\contentsline {figure}{\numberline {22}{\ignorespaces Threshold selection curve showing precision, recall, and F1 score as functions of the match probability threshold for the baseline Splink model on the MusicBrainz dataset.\relax }}{37}{figure.caption.24}\protected@file@percent }
+\newlabel{fig:threshold_curve_music}{{22}{37}{Threshold selection curve showing precision, recall, and F1 score as functions of the match probability threshold for the baseline Splink model on the MusicBrainz dataset.\relax }{figure.caption.24}{}}
+\newlabel{fig:threshold_curve_music@cref}{{[figure][22][]22}{[1][36][]37}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.3.4}Local-to-Global Aggregation Analysis}{37}{subsubsection.5.3.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {23}{\ignorespaces Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the MusicBrainz dataset, demonstrating performance across the theoretical framework's aggregation functions.\relax }}{38}{figure.caption.25}\protected@file@percent }
+\newlabel{fig:threshold_evaluation_music}{{23}{38}{Threshold evaluation curves (precision, recall, F1 binned into equal-width intervals) for each aggregation strategy on the MusicBrainz dataset, demonstrating performance across the theoretical framework's aggregation functions.\relax }{figure.caption.25}{}}
+\newlabel{fig:threshold_evaluation_music@cref}{{[figure][23][]23}{[1][37][]38}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.3.5}Discussion}{38}{subsubsection.5.3.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Experiment 4: Behavioural Aggregation Experiments}{38}{subsection.5.4}\protected@file@percent }
+\newlabel{sec:exp_aggregation}{{5.4}{38}{Experiment 4: Behavioural Aggregation Experiments}{subsection.5.4}{}}
+\newlabel{sec:exp_aggregation@cref}{{[subsection][4][5]5.4}{[1][38][]38}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.4.1}Description}{38}{subsubsection.5.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.4.2}Configuration}{39}{subsubsection.5.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Base Dataset - \texttt  {agg\_eg\_normal.ipynb}}{39}{subsubsection.5.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{Match weights}{39}{subsubsection.5.4.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {24}{\ignorespaces Match weights chart for the base variant dataset.\relax }}{40}{figure.caption.26}\protected@file@percent }
+\newlabel{fig:match_weights_base}{{24}{40}{Match weights chart for the base variant dataset.\relax }{figure.caption.26}{}}
+\newlabel{fig:match_weights_base@cref}{{[figure][24][]24}{[1][39][]40}}
+\@writefile{toc}{\contentsline {subparagraph}{Threshold selection curve}{40}{figure.caption.26}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {25}{\ignorespaces Threshold selection curve for the base variant dataset. The orange dotted curve is recall, blue dashed-line is precision. Green bold line is F1.\relax }}{41}{figure.caption.27}\protected@file@percent }
+\newlabel{fig:threshold_curve_base}{{25}{41}{Threshold selection curve for the base variant dataset. The orange dotted curve is recall, blue dashed-line is precision. Green bold line is F1.\relax }{figure.caption.27}{}}
+\newlabel{fig:threshold_curve_base@cref}{{[figure][25][]25}{[1][40][]41}}
+\@writefile{toc}{\contentsline {paragraph}{Low-card Dataset - \texttt  {agg\_eg.ipynb}}{41}{figure.caption.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{Match weights}{41}{figure.caption.27}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {26}{\ignorespaces Match weights chart for the low\_card variant dataset.\relax }}{42}{figure.caption.28}\protected@file@percent }
+\newlabel{fig:match_weights_low_card}{{26}{42}{Match weights chart for the low\_card variant dataset.\relax }{figure.caption.28}{}}
+\newlabel{fig:match_weights_low_card@cref}{{[figure][26][]26}{[1][41][]42}}
+\@writefile{toc}{\contentsline {subparagraph}{Threshold selection curve}{42}{figure.caption.28}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {27}{\ignorespaces Threshold selection curve for the low\_card variant dataset. The orange dotted curve is recall, blue dashed-line is precision. Green bold line is F1.\relax }}{43}{figure.caption.29}\protected@file@percent }
+\newlabel{fig:threshold_curve_low_card}{{27}{43}{Threshold selection curve for the low\_card variant dataset. The orange dotted curve is recall, blue dashed-line is precision. Green bold line is F1.\relax }{figure.caption.29}{}}
+\newlabel{fig:threshold_curve_low_card@cref}{{[figure][27][]27}{[1][42][]43}}
+\@writefile{toc}{\contentsline {paragraph}{MusicBrainz Dataset - \texttt  {agg\_music.ipynb}}{43}{figure.caption.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{Match weights}{43}{figure.caption.29}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {28}{\ignorespaces Match weights chart for the MusicBrainz dataset.\relax }}{44}{figure.caption.30}\protected@file@percent }
+\newlabel{fig:match_weights_music}{{28}{44}{Match weights chart for the MusicBrainz dataset.\relax }{figure.caption.30}{}}
+\newlabel{fig:match_weights_music@cref}{{[figure][28][]28}{[1][43][]44}}
+\@writefile{toc}{\contentsline {subparagraph}{Threshold selection curve}{44}{figure.caption.30}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {29}{\ignorespaces Threshold selection curve for the MusicBrainz dataset. The orange dotted curve is recall, blue dashed-line is precision. Green bold line is F1.\relax }}{44}{figure.caption.31}\protected@file@percent }
+\newlabel{fig:threshold_curve_music}{{29}{44}{Threshold selection curve for the MusicBrainz dataset. The orange dotted curve is recall, blue dashed-line is precision. Green bold line is F1.\relax }{figure.caption.31}{}}
+\newlabel{fig:threshold_curve_music@cref}{{[figure][29][]29}{[1][44][]44}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.4.3}Discussion}{45}{subsubsection.5.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Experiment 5: Hierarchical 2-Layer Splink Approach}{45}{subsection.5.5}\protected@file@percent }
+\newlabel{sec:exp_hierarchical}{{5.5}{45}{Experiment 5: Hierarchical 2-Layer Splink Approach}{subsection.5.5}{}}
+\newlabel{sec:exp_hierarchical@cref}{{[subsection][5][5]5.5}{[1][45][]45}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.1}Description}{45}{subsubsection.5.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.2}Configuration}{45}{subsubsection.5.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.3}Results}{45}{subsubsection.5.5.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {30}{\ignorespaces Match weights chart showing m-probability, u-probability, bayes factor, and log2 bayes factor for each comparison level in the hierarchical 2-layer Splink approach on the low\_card variant.\relax }}{46}{figure.caption.32}\protected@file@percent }
+\newlabel{fig:hierarchical_match_weights_low_card}{{30}{46}{Match weights chart showing m-probability, u-probability, bayes factor, and log2 bayes factor for each comparison level in the hierarchical 2-layer Splink approach on the low\_card variant.\relax }{figure.caption.32}{}}
+\newlabel{fig:hierarchical_match_weights_low_card@cref}{{[figure][30][]30}{[1][45][]46}}
+\@writefile{lof}{\contentsline {figure}{\numberline {31}{\ignorespaces Threshold selection curve showing precision, recall, and F1 score as functions of the match probability threshold for the hierarchical 2-layer Splink approach on the low\_card variant. The curve illustrates the trade-off between precision and recall across different threshold values.\relax }}{47}{figure.caption.33}\protected@file@percent }
+\newlabel{fig:hierarchical_threshold_curve_low_card}{{31}{47}{Threshold selection curve showing precision, recall, and F1 score as functions of the match probability threshold for the hierarchical 2-layer Splink approach on the low\_card variant. The curve illustrates the trade-off between precision and recall across different threshold values.\relax }{figure.caption.33}{}}
+\newlabel{fig:hierarchical_threshold_curve_low_card@cref}{{[figure][31][]31}{[1][46][]47}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.4}Discussion}{47}{subsubsection.5.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Edge Cases \& Structural Extremities: Cardinality Breakdown}{48}{section.6}\protected@file@percent }
+\newlabel{sec:edge_cases}{{6}{48}{Edge Cases \& Structural Extremities: Cardinality Breakdown}{section.6}{}}
+\newlabel{sec:edge_cases@cref}{{[section][6][]6}{[1][48][]48}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Failure Modes at Low Cardinality}{48}{subsection.6.1}\protected@file@percent }
+\newlabel{sec:low_card_failure}{{6.1}{48}{Failure Modes at Low Cardinality}{subsection.6.1}{}}
+\newlabel{sec:low_card_failure@cref}{{[subsection][1][6]6.1}{[1][48][]48}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.1.1}Independence Assumption Violation}{48}{subsubsection.6.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.1.2}Combinatorial Explosion in Comparison Space}{48}{subsubsection.6.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.1.3}Sparse Parameter Estimation}{48}{subsubsection.6.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.1.4}Aggregation robustness}{48}{subsubsection.6.1.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Discussion}{48}{section.7}\protected@file@percent }
+\newlabel{sec:discussion}{{7}{48}{Discussion}{section.7}{}}
+\newlabel{sec:discussion@cref}{{[section][7][]7}{[1][48][]48}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}On confidence scores and the Fellegi-Sunter model}{48}{subsection.7.1}\protected@file@percent }
+\newlabel{subsec:confidence-fellegi-sunter}{{7.1}{48}{On confidence scores and the Fellegi-Sunter model}{subsection.7.1}{}}
+\newlabel{subsec:confidence-fellegi-sunter@cref}{{[subsection][1][7]7.1}{[1][48][]48}}
+\citation{splink2024}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Splink, and modern Fellegi-Sunter}{50}{subsection.7.2}\protected@file@percent }
+\newlabel{subsec:splink}{{7.2}{50}{Splink, and modern Fellegi-Sunter}{subsection.7.2}{}}
+\newlabel{subsec:splink@cref}{{[subsection][2][7]7.2}{[1][50][]50}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Limitations}{50}{subsection.7.3}\protected@file@percent }
+\newlabel{sec:limitations}{{7.3}{50}{Limitations}{subsection.7.3}{}}
+\newlabel{sec:limitations@cref}{{[subsection][3][7]7.3}{[1][50][]50}}
+\@writefile{toc}{\contentsline {section}{\numberline {8}Future Work \& Conclusion}{50}{section.8}\protected@file@percent }
+\newlabel{sec:conclusion}{{8}{50}{Future Work \& Conclusion}{section.8}{}}
+\newlabel{sec:conclusion@cref}{{[section][8][]8}{[1][50][]50}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Future Work}{50}{subsection.8.1}\protected@file@percent }
+\newlabel{sec:future_work}{{8.1}{50}{Future Work}{subsection.8.1}{}}
+\newlabel{sec:future_work@cref}{{[subsection][1][8]8.1}{[1][50][]50}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.1.1}1. Automated Threshold Selection via Mixture Models}{50}{subsubsection.8.1.1}\protected@file@percent }
+\newlabel{sec:future_mixture}{{8.1.1}{50}{1. Automated Threshold Selection via Mixture Models}{subsubsection.8.1.1}{}}
+\newlabel{sec:future_mixture@cref}{{[subsubsection][1][8,1]8.1.1}{[1][50][]50}}
+\citation{thibaudeau1993discrimination,winkler1993improved}
+\citation{mozafari2025active,rough2024minimal,binette2022almost}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.1.2}Further exploration into hierarchical probabilistic linkage}{51}{subsubsection.8.1.2}\protected@file@percent }
+\newlabel{sec:future_hierarchical_splink}{{8.1.2}{51}{Further exploration into hierarchical probabilistic linkage}{subsubsection.8.1.2}{}}
+\newlabel{sec:future_hierarchical_splink@cref}{{[subsubsection][2][8,1]8.1.2}{[1][51][]51}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.1.3}Active Learning \& Label Minimisation}{51}{subsubsection.8.1.3}\protected@file@percent }
+\newlabel{sec:future_active}{{8.1.3}{51}{Active Learning \& Label Minimisation}{subsubsection.8.1.3}{}}
+\newlabel{sec:future_active@cref}{{[subsubsection][3][8,1]8.1.3}{[1][51][]51}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.1.4}Multi-Source (K $>$ 2) Global Resolution}{51}{subsubsection.8.1.4}\protected@file@percent }
+\newlabel{sec:future_multisource}{{8.1.4}{51}{Multi-Source (K $>$ 2) Global Resolution}{subsubsection.8.1.4}{}}
+\newlabel{sec:future_multisource@cref}{{[subsubsection][4][8,1]8.1.4}{[1][51][]51}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.1.5}Distributed \textsc  {Splink}{} on Spark for Scale}{51}{subsubsection.8.1.5}\protected@file@percent }
+\newlabel{sec:future_distributed}{{8.1.5}{51}{Distributed \splink {} on Spark for Scale}{subsubsection.8.1.5}{}}
+\newlabel{sec:future_distributed@cref}{{[subsubsection][5][8,1]8.1.5}{[1][51][]51}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.1.6}Temporal Entity Resolution}{52}{subsubsection.8.1.6}\protected@file@percent }
+\newlabel{sec:future_temporal}{{8.1.6}{52}{Temporal Entity Resolution}{subsubsection.8.1.6}{}}
+\newlabel{sec:future_temporal@cref}{{[subsubsection][6][8,1]8.1.6}{[1][51][]52}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.1.7}Semantic Augmentation (LLM Hybrid)}{52}{subsubsection.8.1.7}\protected@file@percent }
+\newlabel{sec:future_llm}{{8.1.7}{52}{Semantic Augmentation (LLM Hybrid)}{subsubsection.8.1.7}{}}
+\newlabel{sec:future_llm@cref}{{[subsubsection][7][8,1]8.1.7}{[1][52][]52}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Conclusion}{52}{subsection.8.2}\protected@file@percent }
+\newlabel{sec:conclusion_final}{{8.2}{52}{Conclusion}{subsection.8.2}{}}
+\newlabel{sec:conclusion_final@cref}{{[subsection][2][8]8.2}{[1][52][]52}}
+\@writefile{toc}{\contentsline {paragraph}{Key findings:}{52}{subsection.8.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The framework is characterised by:}{52}{Item.38}\protected@file@percent }
+\bibstyle{plainnat}
+\bibdata{references}
+\bibcite{binette2022almost}{{1}{2022}{{Binette and Steorts}}{{}}}
+\bibcite{dempster1977maximum}{{2}{1977}{{Dempster et~al.}}{{Dempster, Laird, and Rubin}}}
+\bibcite{fellegi1969theory}{{3}{1969}{{Fellegi and Sunter}}{{}}}
+\bibcite{splink2024}{{4}{2024}{{Linacre et~al.}}{{Linacre, Lindsay, et~al.}}}
+\bibcite{mozafari2025active}{{5}{2025}{{Mozafari et~al.}}{{Mozafari, Sarkar, Franklin, Jordan, and Madden}}}
+\bibcite{rough2024minimal}{{6}{2024}{{Rough and Faingezicht}}{{}}}
+\bibcite{thibaudeau1993discrimination}{{7}{1993}{{Thibaudeau}}{{}}}
+\bibcite{winkler1989frequency}{{8}{1989}{{Winkler}}{{}}}
+\bibcite{winkler1993improved}{{9}{1993}{{Winkler}}{{}}}
+\gdef \LT@i {\LT@entry 
+    {1}{83.13188pt}\LT@entry 
+    {1}{83.13188pt}\LT@entry 
+    {1}{111.58464pt}\LT@entry 
+    {1}{111.58464pt}\LT@entry 
+    {1}{111.58464pt}}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Summary of Entity Resolution Methodologies}{53}{appendix.A}\protected@file@percent }
+\newlabel{annex:er_methodologies}{{A}{53}{Summary of Entity Resolution Methodologies}{appendix.A}{}}
+\newlabel{annex:er_methodologies@cref}{{[appendix][1][2147483647]A}{[1][53][]53}}
+\@writefile{toc}{\contentsline {section}{\numberline {B}Mathematical Derivations}{55}{appendix.B}\protected@file@percent }
+\newlabel{annex:math_derivations}{{B}{55}{Mathematical Derivations}{appendix.B}{}}
+\newlabel{annex:math_derivations@cref}{{[appendix][2][2147483647]B}{[1][55][]55}}
+\@writefile{toc}{\contentsline {section}{\numberline {C}Fellegi-Sunter Model Derivation}{55}{appendix.C}\protected@file@percent }
+\newlabel{annex:fs_derivation}{{C}{55}{Fellegi-Sunter Model Derivation}{appendix.C}{}}
+\newlabel{annex:fs_derivation@cref}{{[appendix][3][2147483647]C}{[1][55][]55}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {C.1}From Hypothesis Test to Match Weight}{55}{subsection.C.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {C.2}Posterior Match Probability}{55}{subsection.C.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {C.3}EM Algorithm Derivation}{55}{subsection.C.3}\protected@file@percent }
+\newlabel{annex:em_derivation}{{C.3}{55}{EM Algorithm Derivation}{subsection.C.3}{}}
+\newlabel{annex:em_derivation@cref}{{[subappendix][3][2147483647,3]C.3}{[1][55][]55}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {C.4}Blocked EM}{56}{subsection.C.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {D}Aggregation Function Properties}{56}{appendix.D}\protected@file@percent }
+\newlabel{annex:agg_properties}{{D}{56}{Aggregation Function Properties}{appendix.D}{}}
+\newlabel{annex:agg_properties@cref}{{[appendix][4][2147483647]D}{[1][56][]56}}
+\@writefile{toc}{\contentsline {section}{\numberline {E}Set Similarity Metrics}{56}{appendix.E}\protected@file@percent }
+\newlabel{annex:set_metrics}{{E}{56}{Set Similarity Metrics}{appendix.E}{}}
+\newlabel{annex:set_metrics@cref}{{[appendix][5][2147483647]E}{[1][56][]56}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {E.1}Monge-Elkan}{56}{subsection.E.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {E.2}Soft Jaccard}{56}{subsection.E.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {E.3}Magnitude-Weighted Cosine}{57}{subsection.E.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {F}Cardinality Breakdown Analysis}{57}{appendix.F}\protected@file@percent }
+\newlabel{annex:cardinality_math}{{F}{57}{Cardinality Breakdown Analysis}{appendix.F}{}}
+\newlabel{annex:cardinality_math@cref}{{[appendix][6][2147483647]F}{[1][57][]57}}
+\@writefile{toc}{\contentsline {section}{\numberline {G}Data Generation Implementation}{57}{appendix.G}\protected@file@percent }
+\newlabel{annex:datagen_code}{{G}{57}{Data Generation Implementation}{appendix.G}{}}
+\newlabel{annex:datagen_code@cref}{{[appendix][7][2147483647]G}{[1][57][]57}}
+\@writefile{toc}{\contentsline {section}{\numberline {H}Main Entry Point: \texttt  {generate\_data.py}}{57}{appendix.H}\protected@file@percent }
+\newlabel{annex:gen_data_main}{{H}{57}{Main Entry Point: \texttt {generate\_data.py}}{appendix.H}{}}
+\newlabel{annex:gen_data_main@cref}{{[appendix][8][2147483647]H}{[1][57][]57}}
+\newlabel{lst:gen_data}{{1}{57}{generate\_data.py -- Core Pipeline}{lstlisting.1}{}}
+\newlabel{lst:gen_data@cref}{{[lstlisting][1][2147483647]1}{[1][57][]57}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}generate\_data.py -- Core Pipeline}{57}{lstlisting.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {I}Configuration: \texttt  {data\_generator/config.yaml}}{60}{appendix.I}\protected@file@percent }
+\newlabel{annex:config_yaml}{{I}{60}{Configuration: \texttt {data\_generator/config.yaml}}{appendix.I}{}}
+\newlabel{annex:config_yaml@cref}{{[appendix][9][2147483647]I}{[1][60][]60}}
+\newlabel{lst:config_yaml}{{2}{60}{config.yaml -- Simulation \& Feature Configuration}{lstlisting.2}{}}
+\newlabel{lst:config_yaml@cref}{{[lstlisting][2][2147483647]2}{[1][60][]60}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2}config.yaml -- Simulation \& Feature Configuration}{60}{lstlisting.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {J}Core Modules}{61}{appendix.J}\protected@file@percent }
+\newlabel{annex:gen_core}{{J}{61}{Core Modules}{appendix.J}{}}
+\newlabel{annex:gen_core@cref}{{[appendix][10][2147483647]J}{[1][61][]61}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {J.1}\texttt  {data\_generator/entitymanager.py}}{61}{subsection.J.1}\protected@file@percent }
+\newlabel{lst:entitymanager}{{3}{61}{EntitySpaceManager -- Identity Pool}{lstlisting.3}{}}
+\newlabel{lst:entitymanager@cref}{{[lstlisting][3][2147483647]3}{[1][61][]61}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3}EntitySpaceManager -- Identity Pool}{61}{lstlisting.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {J.2}\texttt  {data\_generator/pipeline.py}}{61}{subsection.J.2}\protected@file@percent }
+\newlabel{lst:pipeline}{{4}{61}{DataPipelineOrchestrator -- Record Generation}{lstlisting.4}{}}
+\newlabel{lst:pipeline@cref}{{[lstlisting][4][2147483647]4}{[1][61][]61}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4}DataPipelineOrchestrator -- Record Generation}{61}{lstlisting.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {J.3}\texttt  {data\_generator/generator.py}}{62}{subsection.J.3}\protected@file@percent }
+\newlabel{lst:generators}{{5}{62}{DataGeneratorFactory + Noise Models}{lstlisting.5}{}}
+\newlabel{lst:generators@cref}{{[lstlisting][5][2147483647]5}{[1][62][]62}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {5}DataGeneratorFactory + Noise Models}{62}{lstlisting.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {K}Configuration Variants}{62}{appendix.K}\protected@file@percent }
+\newlabel{annex:config_variants}{{K}{62}{Configuration Variants}{appendix.K}{}}
+\newlabel{annex:config_variants@cref}{{[appendix][11][2147483647]K}{[1][62][]62}}
+\@writefile{toc}{\contentsline {section}{\numberline {L}Unified Soft String-Matching Metrics Framework}{62}{appendix.L}\protected@file@percent }
+\newlabel{annex:set_similarities_full}{{L}{62}{Unified Soft String-Matching Metrics Framework}{appendix.L}{}}
+\newlabel{annex:set_similarities_full@cref}{{[appendix][12][2147483647]L}{[1][62][]62}}
+\@writefile{toc}{\contentsline {section}{\numberline {M}Definitions and Notation}{62}{appendix.M}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {N}The Four Soft Metrics}{63}{appendix.N}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {N.1}Monge-Elkan Similarity (Asymmetric)}{63}{subsection.N.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {N.2}Symmetric Soft Jaccard Similarity}{63}{subsection.N.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {N.3}Symmetric Soft Dice Coefficient}{63}{subsection.N.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {N.4}Soft Simpson Coefficient (Overlap Metric)}{63}{subsection.N.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {O}Unified Binned Comparison Logic}{63}{appendix.O}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Operational Level Thresholds\relax }}{64}{table.caption.34}\protected@file@percent }
+\newlabel{tab:set_thresholds_full}{{4}{64}{Operational Level Thresholds\relax }{table.caption.34}{}}
+\newlabel{tab:set_thresholds_full@cref}{{[table][4][2147483647]4}{[1][63][]64}}
+\@writefile{toc}{\contentsline {section}{\numberline {P}DuckDB SQL Implementations}{64}{appendix.P}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {P.1}Soft Jaccard}{64}{subsection.P.1}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {6}Soft Jaccard SQL}{64}{lstlisting.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {P.2}Monge-Elkan}{64}{subsection.P.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {7}Monge-Elkan SQL}{64}{lstlisting.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {P.3}Soft Dice}{64}{subsection.P.3}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {8}Soft Dice SQL}{64}{lstlisting.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {P.4}Soft Simpson}{65}{subsection.P.4}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {9}Soft Simpson SQL}{65}{lstlisting.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {Q}Properties Summary}{65}{appendix.Q}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Metric Properties Comparison\relax }}{65}{table.caption.35}\protected@file@percent }
+\newlabel{tab:metric_properties}{{5}{65}{Metric Properties Comparison\relax }{table.caption.35}{}}
+\newlabel{tab:metric_properties@cref}{{[table][5][2147483647]5}{[1][65][]65}}
+\@writefile{toc}{\contentsline {section}{\numberline {R}Usage Recommendations}{65}{appendix.R}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {S}Artist Matching Ground Truth and Precision/Recall Guarantees}{65}{appendix.S}\protected@file@percent }
+\newlabel{annex:artist_matching}{{S}{65}{Artist Matching Ground Truth and Precision/Recall Guarantees}{appendix.S}{}}
+\newlabel{annex:artist_matching@cref}{{[appendix][19][2147483647]S}{[1][65][]65}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {S.1}Subset Precision is a Lower Bound on True Precision}{65}{subsection.S.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {S.2}Artist Matching Prior and Recall Estimation under Clustered Noise}{66}{subsection.S.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {S.2.1}Preservation of the True Match Prior ($p$)}{66}{subsubsection.S.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {S.2.2}Clustered Noise and Captured Predictive Inflation ($q$)}{67}{subsubsection.S.2.2}\protected@file@percent }
+\gdef \@abspage@last{67}

@@ -1,0 +1,64 @@
+% ============================================================
+% 1. Introduction
+% ============================================================
+\section{Introduction}
+\label{sec:introduction}
+
+\subsection{Problem Statement}
+\label{sec:problem_statement}
+
+Entity resolution (ER)—the task of identifying records that refer to the same real-world entity across one or more data sources—is a foundational challenge in data integration.
+The problem arises from pervasive data quality issues: attribute ambiguity (e.g., `J. Smith` vs. `John Smith`), data entry errors, missing values, temporal drift in attributes, and schema heterogeneity.
+Traditional deterministic approaches (exact matching, rule-based systems) are labour-intensive, brittle, and fail to generalise across diverse corruption patterns.
+
+ER encompasses a wide spectrum of problem structures and inference methods:
+\begin{itemize}
+    \item \textbf{Clustering-based} (no labels): hierarchical agglomerative, correlation clustering, canonical correlation analysis
+    \item \textbf{Probabilistic graphical models}: \fellegisunter{} (FS), Bayesian networks, Markov random fields
+    \item \textbf{Supervised learning}: binary classification, learning-to-rank, deep metric learning
+    \item \textbf{LLM-based semantic matching}: embedding similarity, prompt-based reasoning
+    \item \textbf{Graph/behavioural approaches}: collective resolution, network propagation, transactional pattern matching
+\end{itemize}
+An annex summarising these methodologies is provided in \Cref{annex:er_methodologies}.
+
+The choice of method is dictated not by preference but by the \textit{constraints} of the specific ER problem at hand.
+This report addresses ER under the following explicit constraints:
+
+\begin{enumerate}
+    \item \textbf{Global entity resolution}: The goal is to resolve entities across two datasets (Source A and Source B) into a unified global view.
+    \item \textbf{Unsupervised learning}: No ground-truth labels are available for training; parameter estimation must be data-driven.
+    \item \textbf{Stable within-dataset identifiers}: Records in each source carry a \localentity{} identifier (`local\_source\_id`) that is consistent for all records belonging to the same \globalentity{} \textit{within that dataset}.
+    Between datasets, the identifier schema differs ($DF1_*$ vs $DF2_*$), but the within-dataset stability assumption scopes us away from clustering/graph-based methods that would otherwise be necessary to discover local groups.
+    \item \textbf{Attribute types}: Matching signals derive from textual, numerical, and datetime columns only—scoping out LLM-based semantic matching and behavioural/network-based methods.
+    \item \textbf{Cost minimisation}: The objective is to minimise total resolution error (or equivalently, maximise $F_1$) under computational budget constraints imposed by blocking.
+\end{enumerate}
+
+These constraints narrow the methodological space substantially: the \fellegisunter{} probabilistic model with expectation-maximisation (\emalgo{}) estimation, implemented via \splink{}, emerges as the natural (and arguably only) principled choice for the local pairwise matching layer.
+The global layer then becomes an aggregation problem over local pairwise scores.
+
+\subsection{Contributions}
+\label{sec:contributions}
+
+\begin{enumerate}
+    \item \textbf{Formalised Local-to-Global Framework} (\Cref{sec:framework}): A clear separation between local probabilistic matching (\fellegisunter{} via \splink{}) and global aggregation, with explicit assumptions and failure modes.
+    \item \textbf{Implementation Patterns for Unsupervised \splink{}} (\Cref{sec:implementation}): Blocking strategy design with recall bounds, custom comparison levels (exact, \jw{}, percentage-difference, temporal), \emalgo{} training schedules, and evaluation without labels.
+    \item \textbf{Global Aggregation Taxonomy} (\Cref{sec:agg_functions}): Mathematical unification of naive sum, expected-score normalisation, noisy-OR, max-over-partitions, and vector-space aggregation.
+    \item \textbf{Experimental Validation} (\Cref{sec:results}): Systematic results on synthetic data (5 configs: \texttt{smallestest}, \texttt{smaller}, \texttt{small}, \texttt{med\_30\_overlap}, \texttt{low\_card}, \texttt{c2}, \texttt{o50}) and public datasets (DBLP-ACM, MusicBrainz).
+    \item \textbf{Sensitivity Analysis} (\Cref{sec:sensitivity}): Varying blocking rules, target recall, data generation hyperparameters, and their impact on final metrics.
+    \item \textbf{Cardinality Extremities \& Layer-2 Mitigation} (\Cref{sec:edge_cases}): Diagnosis of independence-assumption breakdown at low cardinality; proposal for a secondary \splink{} layer over orthogonal similarity scores with correlation adjustment.
+\end{enumerate}
+
+\subsection{Report Structure}
+\label{sec:structure}
+
+This report alternates focus between \textit{rationale} (why a design decision was made) and \textit{practical implementation} (how it was realised in code).
+\begin{itemize}
+    \item \textbf{Section 2}: Theoretical framework—\fellegisunter{} foundations, \splink{} implementation, global aggregation theory.
+    \item \textbf{Section 3}: System implementation—data generation, \splink{} configuration, blocking strategy.
+    \item \textbf{Section 4}: Experimental methodology—datasets, metrics, evaluation protocol.
+    \item \textbf{Section 5}: Experimental results—artificial baseline, sensitivity analysis, public dataset validation, behavioural aggregation.
+    \item \textbf{Section 6}: Edge cases—cardinality failure modes, Layer-2 proposal.
+    \item \textbf{Section 7}: Discussion—confidence scores necessity, practical takeaways.
+    \item \textbf{Section 8}: Future work and conclusion.
+    \item \textbf{Annexes}: ER methodology summary, mathematical derivations, data generation code, \splink{} configurations.
+\end{itemize}

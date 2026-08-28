@@ -1,0 +1,91 @@
+% ============================================================
+% 4. Experimental Methodology
+% ============================================================
+\section{Experimental Methodology}
+\label{sec:methodology}
+
+\subsection{Datasets}
+\label{sec:datasets}
+
+The naming for the datasets are completely arbitrary, and hold little meaning towards the actual config and structure of the datasets.
+
+\begin{table}[htbp]
+	\centering
+	\caption{Datasets Used in Experiments}
+	\label{tab:datasets}
+	% Save standard booktabs spacing to prevent text clipping
+	\newlength{\oldaboverulesep}
+	\newlength{\oldbelowrulesep}
+	\setlength{\oldaboverulesep}{\aboverulesep}
+	\setlength{\oldbelowrulesep}{\belowrulesep}
+	
+	% Set spacing to zero inside colored rows to fix the background overlap
+	\setlength{\aboverulesep}{0pt}
+	\setlength{\belowrulesep}{0pt}
+
+	\begin{tabular}{llcccc}
+		\toprule
+		\rowcolor{gray!15} \textbf{Name} & \textbf{Type} & \textbf{Entities} & \textbf{Overlap} & \textbf{Cardinality} & \textbf{Source} \\
+		\midrule
+		% Restore normal spacing for the rest of the table
+		\noalign{\setlength{\aboverulesep}{\oldaboverulesep}\setlength{\belowrulesep}{\oldbelowrulesep}}
+		\texttt{base}         & Synthetic     & 30                & 10\%             & 70/80                & \texttt{generate\_data.py} \\
+		\texttt{smallest}          & Synthetic     & 50                & 10\%             & 35/45                & \texttt{generate\_data.py} \\
+		\texttt{low\_card}        & Synthetic     & 100               & 10\%             & 5/5                  & \texttt{generate\_data.py} \\
+		\texttt{o50}              & Synthetic     & 50             & 50\%             & 30/35              & \texttt{generate\_data.py} \\
+		\texttt{MusicBrainz}      & Real  & ~3,900 / ~3,800   & ~27\%            & Multi / Multi        & Public (MusicBrainz)       \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\subsection{Evaluation Protocol}
+\label{sec:evaluation_protocol}
+
+\subsubsection{Synthetic Data: Ground-Truth Available}
+Since \texttt{latent\_event\_id} is preserved, we construct a clerical labels table:
+\begin{enumerate}
+	\item Merge predictions with ground truth on \texttt{latent\_event\_id\_l == latent\_event\_id\_r}.
+	\item Compute TP, FP, FN, TN at each probability threshold.
+	\item Derive Precision, Recall, $F_1$, Accuracy.
+	\item Select optimal threshold via maximum $F_1$.
+\end{enumerate}
+
+\subsubsection{Public Data: No Ground Truth}
+For MusicBrainz, we rely on:
+\begin{itemize}
+	\item \textbf{Blocking recall bounds}: Theoretical upper bound on recall from blocking rule coverage.
+	\item \textbf{Precision/Recall estimation}: Using the \splink{} accuracy analysis with a small manual clerical sample (if available) or synthetic proxy.
+	\item \textbf{Stability checks}: Consistency of match weights across \emalgo{} rounds; separation of match/non-match weight distributions.
+\end{itemize}
+
+\subsubsection{Metrics}
+\label{sec:metrics}
+\begin{gather}
+	\text{Precision} = \frac{TP}{TP + FP}                                                                    \\
+	\text{Recall} = \frac{TP}{TP + FN}                                                                    \\
+	F_1 = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}} \\
+	\text{Accuracy} = \frac{TP + TN}{TP + FP + FN + TN}
+\end{gather}
+
+
+For global aggregation experiments, we also report \textbf{global entity-level} metrics after aggregation (matching on \texttt{global\_entity\_id}).
+
+\subsection{Baselines and Ablations}
+\label{sec:baselines}
+
+\begin{description}
+	\item[\textbf{Normalised Aggregation}] Mean probability per global pair; threshold.
+	\item[\textbf{Noisy-OR Aggregation}] Probabilistic union; threshold.
+	\item[\textbf{Max Aggregation}] Max probability per global pair; threshold.
+	\item[\textbf{Vector-Space Aggregation}] Profile vectors, second \splink{} layer (\Cref{sec:profile_aggregation}).
+	\item[\textbf{Data Config Variants}] Varying data structure.
+\end{description}
+
+\subsection{Computational Environment}
+\label{sec:compute_env}
+\begin{itemize}
+	\item DuckDB in-memory with 24GB memory limit, spill to disk.
+	\item \splink{} 4.x (Python-native).
+	\item Python 3.11, pandas, numpy, scikit-learn for metrics.
+	\item Runtime: Local layer prediction ~1-20s depending on config; global aggregation negligible.
+\end{itemize}

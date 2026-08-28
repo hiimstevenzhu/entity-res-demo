@@ -1,0 +1,75 @@
+% ============================================================
+% 7. Discussion
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{On confidence scores and the Fellegi-Sunter model}
+\label{subsec:confidence-fellegi-sunter}
+
+\textbf{Remark}: This subsection intends to address the following: Modern implementations of Fellegi-Sunter’s framework are \textit{sufficiently discriminatory}. Confidence scores serve to apply \textit{specific additional constraints} into our matching, which is better addressed through specific matching algorithms or approaches.
+
+We can intuitively understand that given some sort of similarity/comparison function (for example, a percentage difference function between two values,) gives indication towards whether or not two records are similar. We also understand that it could be likely that two records might share quite a few different columns that are generally likely to be similar as well (it is quite likely that two identity records would match on gender, first name, etc.).
+
+\textbf{Requiring a discriminatory function:}
+Thus, we wish to find a secondary function that differentiates scores by taking in \textit{relative ranking} into account in regards to the best possible match we can find to a record. We define these as “confidence scores”, but in essence we simply require the following traits for this score:
+
+\begin{enumerate}
+  \item \textbf{Normalised}: In order for this score to be comparable to other score values, this function must be normalised.
+  \item \textbf{Tie-breaking}: on the account that a record is so degenerate that it finds high similarities over various columns above some threshold on multiple records from the other dataset, we need to have some function that determines a tie-breaker on which match is stronger. Two general cases arise:
+  \begin{itemize}
+    \item[a)] Record X from dataset 1 against A and B from dataset 2 forms the comparison vectors $[1,1,1,0]$ and $[1,1,1,0]$. However, this comparison vector is, in one way or another, the “best” in A, and not so in B. The score should be able to differentiate this. We also know this as Global Uniqueness.
+    \item[b)] Record X against A and B forms the comparison vectors $[1,0,0,1]$ and $[1,1,0,0]$. The confidence score must be able to determine which one of these are “better” matches. We also know this as feature weighting.
+  \end{itemize}
+\end{enumerate}
+
+\textbf{Initial consideration: confidence functions}
+We consider the effects of applying some sort of confidence score. In this example, we discuss to the extent of using a softmax function, assuming we have a set of similarity scores across the attributes. We define the softmax function with non-directionality:
+\[
+\text{Conf}_{\text{SM}}(e_{i},f_{j})=\frac{\exp (\text{sim}(e_{i},f_{j}))}{\sum _{(e_{i},f)\in A}\exp (\text{sim}(e_{i},f))}
+\]
+
+We first address the distinction in various confidence functions: z-score, relative ranking, etc. The relative order remains the same (by definition), only the \textit{size} of the gap changes (Proof in the annex):
+\begin{itemize}
+  \item Relative ranking enforces a \textit{``equal penalisation''} constraint for varying scores.
+  \item Z-score enforces a \textit{linear} transformation of the differences.
+  \item Softmax enforces an \textit{exponential} transformation of the same differences.
+\end{itemize}
+
+We can imagine we would use these scores in two ways:
+\begin{enumerate}
+  \item On individual attribute comparisons: softmax when uniqueness is of concern, z-score when attempting to filter noise. Here, we are effectively attempting to apply discriminatory match weights, targeting case b.
+  \item On a scalar aggregation function across the entire comparison vector. Here the distinction is less clear, but we are still attempting to discriminate and rank the same vectors in different distributions, targeting case a.
+\end{enumerate}
+
+The enormously expensive computational cost aside, these implementations require \textbf{extensive manual intervention} and are \textbf{not generalisable} to a different set of records with different data structures.
+
+\textbf{A more elegant solution - Fellegi-Sunter:}
+The core purpose of probabilistic matching is to discriminate attributes by their power to find a match. Feature weightage (case b) finds its solution in m-probabilities (data quality / reliability) - certain attributes must have more reliability in discerning matches - the resultant match weight skews higher for these.
+
+We now attempt to resolve case a: applying a confidence score destroys the globally-absolute probability already assigned by \textit{enforcing additional constraints haphazardly}. (For example, a score of 0.4 in a pool of 0.1 would push itself to 1 - despite actually being a clear poor match).
+
+- For local matching - this is elegantly solved by applying matching algorithms (Hungarian matching algorithm, Optimal transport). These algorithms enforce required constraints without adjustment to the probabilities.
+- For global, grouped entity matching - the crux of the report is the proposal of an approach that leverages aggregation: local score aggregation smooths noise, while profile based aggregation matches unique and consistent \textit{behaviours}.
+
+\subsection{Splink, and modern Fellegi-Sunter}
+\label{subsec:splink}
+Splink is, in essence, the modern implementation of the Fellegi-Sunter probabilistic model that sets the benchmark standard for record linkage.
+
+Beyond the application of the Fellegi-Sunter model, it also supports other well-researched heuristics and approaches, almost all of which became indispensable in this project’s empirical research:
+\begin{itemize}
+  \item Term-Frequency based dynamic match weightage
+  \item Blocking
+  \item Fuzzy matches
+\end{itemize}
+The documentation is available at \url{https://moj-analytical-services.github.io/splink/index.html} \citep{splink2024}. Sample usage is also provided in the repository linked.
+
+\subsection{Limitations}
+\label{sec:limitations}
+\begin{itemize}
+  \item \textbf{Synthetic data only partly represents reality}: The noise models (Gaussian, uniform categorical) are simplistic. Real data has systematic biases, format variations, schema drift.
+  \item \textbf{No temporal evolution}: Entities are static; real ER often involves temporal linking (same entity at different times).
+  \item \textbf{Two datasets only}: Multi-source ($>2$) global resolution introduces transitive consistency constraints not addressed here.
+  \item \textbf{Unsupervised only}: No exploration of semi-supervised (few labels) or active learning regimes.
+  \item \textbf{Compute-limited}: DuckDB single-node; distributed \splink{} (Spark) not tested.
+\end{itemize}

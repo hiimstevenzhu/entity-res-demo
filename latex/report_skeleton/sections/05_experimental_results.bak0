@@ -1,0 +1,180 @@
+% ============================================================
+% 5. Experimental Results \& Discussion
+% ============================================================
+\section{Experimental Results \& Discussion}
+\label{sec:results}
+
+\subsection{Experiment 1a: Artificial Baseline — Local Matching into Global Aggregation}
+\label{sec:exp_baseline}
+
+\subsubsection{\texttt{smallestest} Config (100 Entities, 10\% Overlap, Cardinality 100/120)}
+\label{sec:smallestest_baseline}
+
+\textbf{Local Layer Results} (\texttt{splink\_process.ipynb}):
+\begin{itemize}
+    \item Cartesian product: $1,332 \times 1,644 = 2,189,808$ pairs.
+    \item Blocking rules (\Cref{lst:blocking_rules}) reduce to $\sim$X pairs (cumulative comparison chart).
+    \item \emalgo{} training: Converged in 16 iterations (date block) + 25 iterations (categorical block).
+    \item Match weight separation: Clear bimodal distribution (matches $\sim$+2, non-matches $\sim$-30).
+    \item Optimal local threshold (max $F_1$): $p \ge 0.8966$, $F_1 = 0.6087$, Precision $= 0.5375$, Recall $= 0.7018$.
+\end{itemize}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Local Layer Threshold Selection (\texttt{smallestest})}
+    \label{tab:smallestest_local_threshold}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Metric} & \textbf{Value} & \textbf{Threshold} \\
+        \midrule
+        Max $F_1$ & 0.6087 & 0.8966 \\
+        Precision @ Max $F_1$ & 0.5375 & \\
+        Recall @ Max $F_1$ & 0.7018 & \\
+        Accuracy @ Max $F_1$ & 0.9999 & \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsubsection{Global Aggregation Comparison}
+\label{sec:smallestest_global}
+Using \texttt{splink\_agg.ipynb} on \texttt{smallestest\_predictions.parquet}:
+
+\begin{table}[htbp]
+    \centering
+    \caption{Global Aggregation Methods Comparison (\texttt{smallestest})}
+    \label{tab:smallestest_global}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Aggregation} & \textbf{Precision} & \textbf{Recall} & \textbf{$F_1$} & \textbf{Notes} \\
+        \midrule
+        Naive Sum & \textit{TBD} & \textit{TBD} & \textit{TBD} & Grows with cardinality \\
+        Normalised (Mean) & \textit{TBD} & \textit{TBD} & \textit{TBD} & Bounded $[0,1]$ \\
+        Noisy-OR & \textit{TBD} & \textit{TBD} & \textit{TBD} & Saturates \\
+        Max & \textit{TBD} & \textit{TBD} & \textit{TBD} & Conservative \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \fbox{\parbox[c][4cm][c]{0.45\textwidth}{\centering [Figure: smallestest\\Local Pairwise Heatmap]}}\\
+        \caption{Local pairwise normalised probabilities}
+        \label{fig:hm_local}
+    \end{subfigure}
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \fbox{\parbox[c][4cm][c]{0.45\textwidth}{\centering [Figure: smallestest\\Global Aggregated Heatmap]}}\\
+        \caption{Global aggregated match weights}
+        \label{fig:hm_global}
+    \end{subfigure}
+    \caption{Heatmaps of Match Scores. Block-diagonal structure indicates correct global matches.}
+    \label{fig:heatmaps_smallestest}
+\end{figure}
+
+\subsubsection{Scale-Up: \texttt{smaller}, \texttt{small}, \texttt{med\_30\_overlap}}
+\label{sec:scale_up}
+\begin{itemize}
+    \item \texttt{EM\_smallest}: Baseline minimal config.
+    \item \texttt{small}: 50$\times$ entities; tests blocking scalability.
+    \item \texttt{med\_30\_overlap}: 30\% overlap; tests higher prior $\pi$.
+    \item \texttt{c2}: Double cardinality (200/200); tests combinatorial growth.
+    \item \texttt{o50}: 50\% overlap; tests high-$\pi$ regime.
+\end{itemize}
+
+\subsection{Experiment 2: Sensitivity Analysis}
+\label{sec:sensitivity}
+
+\subsubsection{Blocking Rule Sensitivity}
+\label{sec:sensitivity_blocking}
+\begin{description}
+    \item[\textbf{Strictest Rules}] Conjunction of exact category + $\le 10\%$ numerical + $\le 1$ day datetime.
+    Used for initial $\pi$ estimate. High precision, unknown recall.
+    \item[\textbf{Disjunctive Rules} (\Cref{lst:blocking_rules})] Union of 5 rules covering category, month, numerical 25\%, date $\pm$15 days.
+    \item[\textbf{Varying Target Recall}] $\pi$ estimation with recall $\in \{0.7, 0.9, 0.99\}$.
+    \item[\textbf{Results}] \textit{TBD: Fill in from \texttt{splink\_c2}, \texttt{splink\_o50}, \texttt{splink\_small} notebooks.}
+\end{description}
+
+\subsubsection{Data Generation Hyperparameter Sensitivity}
+\label{sec:sensitivity_datagen}
+\begin{description}
+    \item[\textbf{Noise Level ($\sigma$)}] Higher $\sigma$ $\to$ lower separation in match weights.
+    \item[\textbf{Missing Rate}] Higher missing $\to$ more null-level comparisons $\to$ less signal.
+    \item[\textbf{Cardinality (rows/entity)}] Higher cardinality $\to$ more local pairs per global pair $\to$ aggregation benefits but also more computation.
+    \item[\textbf{Overlap \%}] Higher overlap $\to$ higher $\pi$ $\to$ easier \emalgo{} convergence, more matches to find.
+    \item[\textbf{Results}] \textit{TBD: Systematic sweep across configs.}
+\end{description}
+
+\subsection{Experiment 3: Public Dataset Validation}
+\label{sec:public_datasets}
+
+\subsubsection{DBLP-ACM (\texttt{splink\_dblp\_acm.ipynb})}
+\label{sec:dblp_acm}
+\begin{itemize}
+    \item Bibliographic records: title, authors, venue, year.
+    \item Known overlap $\sim$15\%.
+    \item \splink{} config: Jaro-Winkler on title/authors, exact on year/venue.
+    \item Blocking: Title tokens + year.
+    \item Results: \textit{TBD: Precision/recall bounds from blocking analysis.}
+\end{itemize}
+
+\subsubsection{MusicBrainz (\texttt{splink\_music.ipynb}, \texttt{agg\_music.ipynb})}
+\label{sec:music}
+\begin{itemize}
+    \item Two music catalogs (catalog 3 vs catalog 5), ~3,900 and ~3,800 artists.
+    \item Multi-record per artist (multiple tracks/releases).
+    \item Attributes: title (set), album (set), track number (set), length (numeric), language (set), year (set).
+    \item Aggregation profile: \texttt{artist} as unique\_id.
+    \item Local layer: Soft Jaccard on title/album, Simpson on track number, year overlap, numerical range overlap on length.
+    \item Blocking: At least one intersecting track number.
+    \item \emalgo{} converged with 4 training rules.
+    \item Optimal threshold: $p \ge 0.8966$, Max $F_1 = 0.6087$ (Precision 0.5375, Recall 0.7018).
+    \item Global aggregation: Vector-space profiles $\to$ second \splink{} layer (behavioural aggregation).
+\end{itemize}
+
+\begin{table}[htbp]
+    \centering
+    \caption{MusicBrainz Threshold Curve (Excerpt)}
+    \label{tab:music_threshold}
+    \begin{tabular}{ccccccc}
+        \toprule
+        Threshold & TP & FP & Precision & Recall & $F_1$ & Accuracy \\
+        \midrule
+        0.00 & 881 & 788,476 & 0.0011 & 0.8367 & 0.0022 & 0.9379 \\
+        0.34 & 842 & 2,991 & 0.2197 & 0.7996 & 0.3447 & 0.9997 \\
+        0.55 & 827 & 1,316 & 0.3859 & 0.7854 & 0.5175 & 0.9999 \\
+        \textbf{0.90} & \textbf{739} & \textbf{636} & \textbf{0.5375} & \textbf{0.7018} & \textbf{0.6087} & \textbf{0.9999} \\
+        1.00 & 0 & 0 & 1.0000 & 0.0000 & 0.0000 & 0.9999 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Experiment 4: Behavioural Aggregation (\texttt{agg\_eg.ipynb}, \texttt{agg\_music.ipynb})}
+\label{sec:behavioural_agg}
+
+The behavioural aggregation approach (\Cref{sec:profile_aggregation}) builds a profile vector per \globalentity{} and runs a second \splink{} layer.
+
+\subsubsection{MusicBrainz Profile Construction}
+\begin{itemize}
+    \item \texttt{artist} as global ID.
+    \item Numerical: length mean/min/max $\to$ range overlap comparison.
+    \item Categorical sets: title, album, language $\to$ frequency vectors $\to$ magnitude-weighted cosine.
+    \item Set fields: track number $\to$ Simpson; year $\to$ exact overlap count.
+    \item Blocking on track number intersection $\ge 1$.
+\end{itemize}
+
+\subsubsection{Second-Layer \splink{} Results}
+\begin{itemize}
+    \item Comparison: Soft Jaccard (title), Monge-Elkan (title), Year overlap, Simpson (track number), Range overlap (length).
+    \item \emalgo{} with 4 training rules (track exact, length overlap, year overlap, title soft Jaccard).
+    \item Match weight chart: \textit{TBD: insert visualisation}.
+    \item Precision-Recall: \textit{TBD: compare against single-layer baseline}.
+\end{itemize}
+
+\subsubsection{Synthetic Behavioural Aggregation (\texttt{agg\_eg.ipynb}, \texttt{agg\_eg\_normal.ipynb})}
+\begin{itemize}
+    \item Tests the aggregation engine on synthetic data with known ground truth.
+    \item Compares vector-space aggregation (profile + second \splink{}) vs scalar aggregations (sum, mean, noisy-OR, max).
+    \item \textit{TBD: fill in results}.
+\end{itemize}

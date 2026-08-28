@@ -1,0 +1,118 @@
+% ============================================================
+% 6. Edge Cases \& Structural Extremities (Cardinality)
+% ============================================================
+\section{Edge Cases \& Structural Extremities: Cardinality Breakdown}
+\label{sec:edge_cases}
+
+\subsection{Failure Modes at Low Cardinality}
+\label{sec:low_card_failure}
+
+The \texttt{low\_card} config (5 rows/entity, 100 entities, 10\% overlap) exposes fundamental failure modes:
+
+\subsubsection{Independence Assumption Violation}
+The \fellegisunter{} model assumes conditional independence of comparisons given match status.
+At low cardinality, each \globalentity{} has few records ($m,n \approx 5$).
+The local pairwise comparisons between records of the \textit{same} \globalentity{} are highly correlated—they share the same latent true values corrupted independently.
+Formally, for $r_{A,i}, r_{B,j} \sim e$:
+\begin{equation}
+	\text{Cov}(\gamma(r_{A,i}, r_{B,j}), \gamma(r_{A,i'}, r_{B,j'})) > 0 \quad \text{for } i \neq i' \text{ or } j \neq j'
+\end{equation}
+This inflates the effective evidence: the product of likelihood ratios overcounts the information.
+Result: match weights are overconfident (too high for matches, too low for non-matches), but the \textit{ranking} may still be reasonable.
+
+\subsubsection{Combinatorial Explosion in Comparison Space}
+For a global pair with $m$ and $n$ records, there are $m \times n$ local pairs.
+When $m,n$ are large (e.g., 100 $\times$ 120 = 12,000 pairs per global entity), the Cartesian product explodes.
+Blocking must be aggressive, but aggressive blocking loses recall.
+The \texttt{c2} config (200/200) has 40,000 pairs per global entity—computationally prohibitive without strong blocking.
+
+\subsubsection{Sparse Parameter Estimation}
+\emalgo{} estimates $m_k(\gamma)$ from pairs in the blocking rule.
+At low cardinality, the number of true matches in any blocking rule is small ($O(N \rho)$ with small $N$).
+Parameter estimates have high variance; \emalgo{} may converge to unstable values or fail to converge.
+
+\subsubsection{Aggregation robustness}
+As we see in \ref{sec:exp_aggregation}, single scalar aggregation handles all cardinality regimes robustly.
+
+% \subsection{Proposed Mitigation: Profile-Based Probabilistic Matching}
+% \label{sec:profile_splink_proposal}
+
+% \textbf{Core idea}: Instead of aggregating scalar scores, collect \textit{orthogonal similarity scores} as features and apply \fellegisunter{} (\splink{}) on the profile vectors.
+
+% \subsubsection{Step 1: Collect Orthogonal Similarities}
+% For each global entity pair $(e_A, e_B)$, compute a feature vector $\mathbf{x} \in \mathbb{R}^D$:
+% \begin{align}
+% 	x_1 & = \max_{i,j} p_{ij}                                                   & \text{(max local prob)}  \\
+% 	x_2 & = \frac{1}{mn} \sum_{i,j} p_{ij}                                      & \text{(mean local prob)} \\
+% 	x_3 & = 1 - \prod_{i,j} (1-p_{ij})                                          & \text{(noisy-OR)}        \\
+% 	x_4 & = \text{soft Jaccard}(\text{title\_tokens}_A, \text{title\_tokens}_B)                            \\
+% 	x_5 & = \text{Simpson}(\text{track\_nos}_A, \text{track\_nos}_B)                                       \\
+% 	x_6 & = \text{range overlap}(\text{length}_A, \text{length}_B)                                         \\
+% 	x_7 & = \text{year overlap count}                                                                      \\
+% 	x_8 & = \text{mag-cosine}(\text{language\_vec}_A, \text{language\_vec}_B)                              \\
+% 		    & \vdots
+% \end{align}
+% These $D$ features are designed to be \textit{as orthogonal as possible}—each captures a different matching signal.
+
+% \subsubsection{Step 2: Adjust for Correlation}
+% The features $x_d$ are not conditionally independent given match status.
+% We estimate their correlation structure on a held-out set (or via bootstrap on the unsupervised predictions):
+% \begin{equation}
+% 	\mathbf{\Sigma}_M = \text{Cov}(\mathbf{x} \mid M), \quad \mathbf{\Sigma}_U = \text{Cov}(\mathbf{x} \mid U)
+% \end{equation}
+% Then the profile-based \fellegisunter{} uses a multivariate Gaussian (or copula) likelihood instead of the product of univariate likelihoods:
+% \begin{equation}
+% 	\frac{p(\mathbf{x} \mid M)}{p(\mathbf{x} \mid U)} = \frac{\mathcal{N}(\mathbf{x}; \boldsymbol{\mu}_M, \mathbf{\Sigma}_M)}{\mathcal{N}(\mathbf{x}; \boldsymbol{\mu}_U, \mathbf{\Sigma}_U)}
+% \end{equation}
+% Or, pragmatically: use \splink{}'s \texttt{CustomComparison} with binned levels on each $x_d$, and accept the residual dependence (as in the primary layer).
+
+% \subsubsection{Step 3: Profile-Based \splink{} Model}
+% Apply a \splink{} model on the global-pair feature vectors:
+% \begin{itemize}
+% 	\item Input: DataFrame with one row per global entity pair, columns = $x_1 \dots x_D$.
+% 	\item Blocking: Use $x_1$ (max prob) or $x_3$ (noisy-OR) as blocking key.
+% 	\item \emalgo{} estimation: Same procedure; now each ``record'' is a global entity pair.
+% 	\item Output: Calibrated global match probability.
+% \end{itemize}
+
+% \subsubsection{Preliminary Results on \texttt{low\_card}}
+% \label{sec:low_card_prelim}
+% Experiments in \texttt{splink\_low\_card.ipynb} and \texttt{splink\_low\_card\_copy.ipynb}:
+% \begin{itemize}
+% 	\item Primary layer on \texttt{low\_card}: Match weight separation degraded; $F_1$ drops to \textit{TBD}.
+% 	\item Profile construction: Aggregator runs on 5-record groups; vectors are sparse but informative.
+% 	\item Profile-based \splink{}: \textit{TBD: Insert results from notebooks}.
+% 	\item Comparison: Profile-based vs best scalar aggregation (max).
+% \end{itemize}
+
+% \begin{table}[htbp]
+% 	\centering
+% 	\caption{Cardinality Extremes: Method Comparison}
+% 	\label{tab:cardinality_comparison}
+% 	\begin{tabular}{lcccc}
+% 		\toprule
+% 		\textbf{Method}        & \textbf{Low Card (5/5)} & \textbf{Standard (100/120)} & \textbf{High Card (200/200)} \\
+% 		\midrule
+% 		Primary layer (threshold) & \textit{TBD}            & \textit{TBD}                & \textit{TBD}                 \\
+% 		Naive Sum              & \textit{TBD}            & \textit{TBD}                & \textit{TBD}                 \\
+% 		Normalised Mean        & \textit{TBD}            & \textit{TBD}                & \textit{TBD}                 \\
+% 		Noisy-OR               & \textit{TBD}            & \textit{TBD}                & \textit{TBD}                 \\
+% 		Max                    & \textit{TBD}            & \textit{TBD}                & \textit{TBD}                 \\
+% 		Vector-Space (primary layer) & \textit{TBD}            & \textit{TBD}                & \textit{TBD}                 \\
+% 		Profile-based \splink{}      & \textit{TBD}            & \textit{TBD}                & \textit{TBD}                 \\
+% 		\bottomrule
+% 	\end{tabular}
+% \end{table}
+
+% \subsection{When Splink + Aggregation Fails: Decision Boundary}
+% \label{sec:failure_boundary}
+
+% The hybrid approach breaks down when:
+% \begin{enumerate}
+% 	\item \textbf{Cardinality $> 50$ per entity}: Blocking cannot reduce pairs sufficiently; \emalgo{} estimation becomes unstable.
+% 	\item \textbf{Overlap $< 1\%$}: $\pi$ too small; \emalgo{} converges to trivial solution (everything non-match).
+% 	\item \textbf{Attribute overlap $< 2$ fields}: Insufficient signal for separation.
+% 	\item \textbf{Within-dataset duplicates not resolved}: If \texttt{local\_source\_id} is not stable, the local-to-global decomposition is invalid.
+% \end{enumerate}
+% In these regimes, alternative approaches (graph-based collective resolution, deep blocking, active learning) are needed.
+% \end{document}

@@ -1,0 +1,341 @@
+% ============================================================
+% Annex C: Data Generation Code
+% ============================================================
+\section{Data Generation Implementation}
+\label{annex:datagen_code}
+
+This annex contains the core data generation pipeline for reproducibility.
+
+\section{Main Entry Point: \texttt{generate\_data.py}}
+\label{annex:gen_data_main}
+
+\begin{lstlisting}[language=Python, caption={generate\_data.py -- Core Pipeline}, label=lst:gen_data]
+import os
+import yaml
+import pandas as pd
+import numpy as np
+from data_generator.entitymanager import EntitySpaceManager
+from data_generator.pipeline import DataPipelineOrchestrator
+
+SEED = 42
+rng = np.random.default_rng(SEED)
+SIZE = "smaller"  # Config key: smaller_config.yaml
+
+def assign_latent_event_ids(df, id_prefix, start_id=0):
+    """Assign explicit latent event IDs to a dataframe."""
+    n_rows = len(df)
+    if n_rows == 0:
+        return df, start_id
+    latent_ids = [f"{id_prefix}_{start_id + i}" for i in range(n_rows)]
+    df = df.copy()
+    df["latent_event_id"] = latent_ids
+    return df, start_id + n_rows
+
+def main():
+    config_path = os.path.join("data_generator", f"{SIZE}_config.yaml")
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Configuration file not found at: {config_path}")
+
+    print(f"Loading system configuration from {config_path}...")
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+
+    sim_config = config["simulation"]
+    dataset_size = sim_config["dataset_size"]
+    overlap_percentage = sim_config["overlap_percentage"]
+
+    overlap_count = int(dataset_size * overlap_percentage)
+    unique_count_per_source = dataset_size - overlap_count
+
+    print(f"Generating {overlap_count} overlapping entities and {unique_count_per_source} unique entities per source...")
+
+    # 1. Build the true underlying entity identity pool
+    space_manager = EntitySpaceManager(
+        dataset_size=dataset_size, overlap_rate=overlap_percentage, rng=rng
+    )
+
+    # 2. Extract the non-corresponding identity mapping tables
+    print("Generating non-corresponding identity maps...")
+    mapping_a, mapping_b = space_manager.generate_source_mappings()
+
+    # 3. Split mappings into unique and overlapping portions
+    mapping_a_overlap = mapping_a.iloc[:overlap_count].copy()
+    mapping_a_unique = mapping_a.iloc[overlap_count:].copy()
+    mapping_b_overlap = mapping_b.iloc[:overlap_count].copy()
+    mapping_b_unique = mapping_b.iloc[overlap_count:].copy()
+
+    print(f"Mapping A: {len(mapping_a_overlap)} overlapping + {len(mapping_a_unique)} unique")
+    print(f"Mapping B: {len(mapping_b_overlap)} overlapping + {len(mapping_b_unique)} unique")
+
+    # 4. Instantiate the orchestration pipeline
+    print("Executing vectorised multi-row data orchestration pipeline...")
+    orchestrator = DataPipelineOrchestrator(config=config, rng=rng)
+
+    # 5. Generate the three foundational datasets
+    print("Generating overlapping dataset base...")
+    overlapping_base = orchestrator.generate_dataset(
+        mapping_a_overlap,
+        "source_a_rows_per_entity",
+        overlap_count,
+        0
+    )
+
+    print("Generating dataset A unique portion...")
+    dataset_a_unique = orchestrator.generate_dataset(
+        mapping_a_unique,
+        "source_a_rows_per_entity",
+        0,
+        unique_count_per_source
+    )
+
+    print("Generating dataset B unique portion...")
+    dataset_b_unique = orchestrator.generate_dataset(
+        mapping_b_unique,
+        "source_b_rows_per_entity",
+        0,
+        unique_count_per_source
+    )
+
+    # 6. Assign explicit latent event ID labels
+    print("Assigning latent event ID labels...")
+    next_id = 0
+    overlapping_base, next_id = assign_latent_event_ids(overlapping_base, "OVER", next_id)
+    dataset_a_unique, next_id = assign_latent_event_ids(dataset_a_unique, "UNI_A", next_id)
+    dataset_b_unique, next_id = assign_latent_event_ids(dataset_b_unique, "UNIQ_B", next_id)
+
+    # 7. Create the two noisy versions from overlapping base
+    print("Creating noisy version A from overlapping base...")
+    dataset_a_overlap = apply_noise_to_base(overlapping_base.copy(), config, rng, source='a')
+
+    print("Creating noisy version B from overlapping base (with dropout)...")
+    dataset_b_overlap = apply_noise_to_base(overlapping_base.copy(), config, rng, source='b')
+    dataset_b_overlap = apply_dropout(dataset_b_overlap, config, rng)
+
+    # 8. Combine to create final datasets
+    print("Combining datasets...")
+    dataset_a = pd.concat([dataset_a_overlap, dataset_a_unique], ignore_index=True)
+    dataset_b = pd.concat([dataset_b_overlap, dataset_b_unique], ignore_index=True)
+
+    # 9. Optionally sort by datetime column
+    dataset_a = sort_by_datetime_if_exists(dataset_a, config)
+    dataset_b = sort_by_datetime_if_exists(dataset_b, config)
+
+    # 10. Save out files
+    output_dir = "output_data"
+    os.makedirs(output_dir, exist_ok=True)
+
+    print(f"Persisting files to disk under folder: '{output_dir}/'...")
+    dataset_a.to_parquet(os.path.join(output_dir, f"{SIZE}_dataset_a.parquet"), index=False)
+    dataset_b.to_parquet(os.path.join(output_dir, f"{SIZE}_dataset_b.parquet"), index=False)
+
+    print("\nGeneration pipeline run complete. Summary profile metrics:")
+    print(f"-> Dataset A: {len(dataset_a):,} rows generated.")
+    print(f"   - Overlapping portion: {len(dataset_a_overlap):,} rows")
+    print(f"   - Unique portion: {len(dataset_a_unique):,} rows")
+    print(f"-> Dataset B: {len(dataset_b):,} rows generated.")
+    print(f"   - Overlapping portion: {len(dataset_b_overlap):,} rows")
+    print(f"   - Unique portion: {len(dataset_b_unique):,} rows")
+    print("Data structures are successfully saved and ready for the Entity Resolution engine.")
+
+def apply_noise_to_base(base_df, config, rng, source='a'):
+    """Apply feature-specific noise to overlapping base dataset. Preserves ID columns."""
+    preserve_cols = ['global_entity_id', 'local_source_id', 'latent_event_id']
+    cols_to_noise = [col for col in base_df.columns if col not in preserve_cols]
+
+    df_noised = base_df.copy()
+
+    for col in cols_to_noise:
+        feat_config = next((f for f in config["features"] if f["name"] == col), None)
+        if feat_config:
+            f_type = feat_config["type"]
+            from data_generator.generator import DataGeneratorFactory
+            generator = DataGeneratorFactory.get_generator(f_type, rng=rng)
+            df_noised[col] = generator.apply_noise(base_df[col].values, feat_config)
+
+    return df_noised
+
+def apply_dropout(dataset_b, config, rng):
+    """Apply asymmetric dropout to overlapping rows in dataset B only."""
+    sim_config = config["simulation"]
+    dropout_frac = sim_config.get("overlap_dropout_frac", 0.0)
+
+    if dropout_frac <= 0.0:
+        return dataset_b
+
+    n_rows = len(dataset_b)
+    n_to_drop = int(n_rows * dropout_frac)
+
+    if n_to_drop > 0:
+        drop_indices = rng.choice(dataset_b.index, size=n_to_drop, replace=False)
+        dataset_b = dataset_b.drop(index=drop_indices).reset_index(drop=True)
+
+    return dataset_b
+
+def sort_by_datetime_if_exists(df, config):
+    """Sort dataset by datetime column if one exists."""
+    dt_col = next((f["name"] for f in config["features"] if f["type"] == "datetime"), None)
+    if dt_col and dt_col in df.columns:
+        df = df.sort_values(by=dt_col).reset_index(drop=True)
+    return df
+
+if __name__ == "__main__":
+    main()
+\end{lstlisting}
+
+\section{Configuration: \texttt{data\_generator/config.yaml}}
+\label{annex:config_yaml}
+
+\begin{lstlisting}[language=Python, caption={config.yaml -- Simulation \& Feature Configuration}, label=lst:config_yaml]
+simulation:
+  dataset_size: 100                    # Total global entities (NOT total rows)
+  overlap_percentage: 0.10             # 10% true aggregate matches
+  source_a_rows_per_entity: 100        # Simulates multiple transactions per person
+  source_b_rows_per_entity: 120        # Asymmetric cardinality
+  overlap_dropout_frac: 0.0            # Optional: drop overlapping rows from B
+
+features:                              # Features used to generate the data
+  - name: "categorical"
+    type: "categorical"
+    num_classes: 25
+    missing_rate: 0.05
+
+  - name: "numerical_noisy"
+    type: "numerical"
+    noise_type: "gaussian"
+    noise_sigma: 2.5
+    missing_rate: 0.05
+
+  - name: "datetime_noisy"
+    type: "datetime"
+    start_date: "2026-01-01"
+    end_date: "2026-06-01"
+    noise_type: "gaussian"
+    noise_sigma_hours: 6.0
+    missing_rate: 0.00
+
+available_features:                    # Pool of available feature definitions
+  - name: "categorical"
+    type: "categorical"
+    num_classes: 25
+    missing_rate: 0.05
+
+  - name: "numerical_noisy"
+    type: "numerical"
+    noise_type: "gaussian"
+    noise_sigma: 2.5
+    missing_rate: 0.0
+
+  - name: "numerical_clean"
+    type: "numerical"
+    noise_type: "none"
+    missing_rate: 0.05
+
+  - name: "datetime_noisy"
+    type: "datetime"
+    start_date: "2026-01-01"
+    end_date: "2026-06-01"
+    noise_type: "gaussian"
+    noise_sigma_hours: 2.0
+    missing_rate: 0.02
+
+  - name: "datetime_clean"
+    type: "datetime"
+    start_date: "2026-01-01"
+    end_date: "2026-06-01"
+    noise_type: "none"
+    missing_rate: 0.0
+\end{lstlisting}
+
+\section{Core Modules}
+\label{annex:gen_core}
+
+\subsection{\texttt{data\_generator/entitymanager.py}}
+Manages the global entity pool and source mappings.
+
+\begin{lstlisting}[language=Python, caption={EntitySpaceManager -- Identity Pool}, label=lst:entitymanager]
+# data_generator/entitymanager.py (simplified interface)
+class EntitySpaceManager:
+    def __init__(self, dataset_size, overlap_rate, rng):
+        self.dataset_size = dataset_size
+        self.overlap_rate = overlap_rate
+        self.rng = rng
+        self.global_entities = self._create_entity_pool()
+
+    def _create_entity_pool(self):
+        # Create pool of global entity IDs with true attribute values
+        pass
+
+    def generate_source_mappings(self):
+        # Split entities into Source A and Source B mappings
+        # overlap_rate fraction appears in both
+        # Returns: mapping_a, mapping_b DataFrames with global_entity_id, latent attributes
+        pass
+\end{lstlisting}
+
+\subsection{\texttt{data\_generator/pipeline.py}}
+Orchestrates record expansion and feature generation.
+
+\begin{lstlisting}[language=Python, caption={DataPipelineOrchestrator -- Record Generation}, label=lst:pipeline]
+# data_generator/pipeline.py (simplified interface)
+class DataPipelineOrchestrator:
+    def __init__(self, config, rng):
+        self.config = config
+        self.rng = rng
+        self.generators = self._build_generators()
+
+    def _build_generators(self):
+        # Instantiate feature generators from config
+        pass
+
+    def generate_dataset(self, mapping, rows_per_entity_col, overlap_count, unique_count):
+        # Expand each entity into multiple records (rows)
+        # Apply latent attribute values
+        # Returns: DataFrame with global_entity_id, local_source_id, feature columns
+        pass
+\end{lstlisting}
+
+\subsection{\texttt{data\_generator/generator.py}}
+Feature-specific generation and noise application.
+
+\begin{lstlisting}[language=Python, caption={DataGeneratorFactory + Noise Models}, label=lst:generators]
+# data_generator/generator.py (simplified interface)
+class DataGeneratorFactory:
+    @staticmethod
+    def get_generator(feature_type, rng):
+        if feature_type == "categorical":
+            return CategoricalGenerator(rng)
+        elif feature_type == "numerical":
+            return NumericalGenerator(rng)
+        elif feature_type == "datetime":
+            return DatetimeGenerator(rng)
+
+class CategoricalGenerator:
+    def apply_noise(self, values, feat_config):
+        # With missing_rate -> NaN
+        # With prob (1-missing) * (1/num_classes) -> random other class
+        # Else -> keep true value
+        pass
+
+class NumericalGenerator:
+    def apply_noise(self, values, feat_config):
+        # values + N(0, sigma^2); missing_rate -> NaN
+        pass
+
+class DatetimeGenerator:
+    def apply_noise(self, values, feat_config):
+        # values + N(0, sigma_hours^2); missing_rate -> NaT
+        pass
+\end{lstlisting}
+
+\section{Configuration Variants}
+\label{annex:config_variants}
+
+\begin{itemize}
+	\item \texttt{smallestest\_config.yaml}: $N=100$, rows 100/120 (fastest)
+	\item \texttt{smaller\_config.yaml}: $N=1000$, rows 100/120 (standard)
+	\item \texttt{small\_config.yaml}: $N=5000$, rows 100/120 (scale)
+	\item \texttt{med\_30\_overlap\_config.yaml}: $N=10000$, overlap 30\%
+	\item \texttt{low\_card\_config.yaml}: $N=100$, rows 5/5 (cardinality extreme)
+	\item \texttt{c2\_config.yaml}: $N=1000$, rows 200/200 (high cardinality)
+	\item \texttt{o50\_config.yaml}: $N=1000$, overlap 50\%
+\end{itemize}

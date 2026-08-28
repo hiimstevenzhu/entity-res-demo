@@ -1,0 +1,191 @@
+% ============================================================
+% 3. System Implementation \& Tooling
+% ============================================================
+\section{System Implementation \& Tooling}
+\label{sec:implementation}
+
+\subsection{Data Generation: Synthetic Corruption Pipeline}
+\label{sec:data_generation}
+
+The synthetic data generator (\texttt{generate\_data.py}, \texttt{data\_generator/}) creates two datasets A and B with known \globalentity{} overlap.
+The pipeline (\Cref{fig:datagen_pipeline}):
+
+\begin{figure}[htbp]
+	\centering
+	\makebox[\textwidth][c]{
+		\begin{tikzpicture}[
+				node distance=0.8cm,
+				every node/.style={font=\small},
+				stage/.style={
+						draw,
+						rectangle,
+						rounded corners=4pt,
+						minimum width=11cm,
+						minimum height=1.1cm,
+						align=center,
+						thick,
+						inner xsep=10pt,
+						inner ysep=6pt
+					},
+				arrow/.style={->, thick, shorten >=2pt, shorten <=2pt}
+			]
+		% Pipeline stages - vertical stack
+		\node[stage, fill=blue!10] (step1) {
+			\textbf{1. EntitySpaceManager} \quad Creates $N$ global entities with overlap rate $\rho$
+		};
+		\node[stage, fill=green!10, below=of step1] (step2) {
+			\textbf{2. Source Mappings $M_A, M_B$} \quad Assign to datasets (shared/unique split)
+		};
+		\node[stage, fill=yellow!10, below=of step2] (step3) {
+			\textbf{3. DataPipelineOrchestrator} \quad Expands each entity $\to$ multiple records (cardinality per entity)
+		};
+		\node[stage, fill=orange!10, below=of step3] (step4) {
+			\textbf{4. Asymmetric Corruption} \quad Independent noise per source (typos, missing fields, date drift)
+		};
+		\node[stage, fill=red!10, below=of step4] (step5) {
+			\textbf{5. Latent IDs Preserved} \quad \texttt{OVER\_*}, \texttt{UNI\_A\_*}, \texttt{UNIQ\_B\_*} for ground-truth evaluation
+		};
+
+		% Stacked arrows
+		\foreach \src/\dst in {step1/step2, step2/step3, step3/step4, step4/step5} {
+				\draw[arrow] (\src.south) -- (\dst.north);
+			}
+
+		% Side labels showing data flow transformation (Fixed coordinate syntax)
+		\node[anchor=east, font=\tiny\ttfamily, text=gray] at ([xshift=-0.2cm]step1.west) {Pool of $N$ entities};
+		\node[anchor=east, font=\tiny\ttfamily, text=gray] at ([xshift=-0.2cm]step2.west) {Split: $R_A$, $R_B$};
+		\node[anchor=east, font=\tiny\ttfamily, text=gray] at ([xshift=-0.2cm]step3.west) {Multi-record per entity};
+		\node[anchor=east, font=\tiny\ttfamily, text=gray] at ([xshift=-0.2cm]step4.west) {Source-specific noise};
+		\node[anchor=east, font=\tiny\ttfamily, text=gray] at ([xshift=-0.2cm]step5.west) {Evaluation keys};
+	\end{tikzpicture}
+	}
+	\caption{Synthetic Data Generation Pipeline.
+		Vertical stages show the transformation from entity pool $\to$ split datasets $\to$ multi-record expansion $\to$ independent corruption $\to$ ground-truth keys.
+		Each stage is a separable, testable component in the codebase.}
+	\label{fig:datagen_pipeline}
+\end{figure}
+
+The pipeline was designed to easily support customisations at various levels (config, data type, data distributions).
+
+\subsubsection{Configuration (YAML)}
+\label{sec:datagen_config}
+Key parameters (\texttt{data\_generator/config.yaml}):
+\begin{itemize}
+	\item \texttt{dataset\_size}: Total global entities $N$.
+	\item \texttt{overlap\_percentage}: Fraction $\rho$ of entities present in both datasets.
+	\item \texttt{source\_a\_rows\_per\_entity}, \texttt{source\_b\_rows\_per\_entity}: Multiplicity (cardinality) per entity per source.
+	\item \texttt{features}: List of $\{ \text{name, type, noise\_params, missing\_rate} \}$.
+	      Types: \texttt{categorical} (classes, missing), \texttt{numerical} (Gaussian noise $\sigma$), \texttt{datetime} (Gaussian hours, missing).
+	\item \texttt{overlap\_dropout\_frac}: Asymmetric dropout on overlapping portion of B.
+\end{itemize}
+
+\subsubsection{Noise Models}
+\label{sec:noise_models}
+\begin{itemize}
+	\item \textbf{Categorical}: Uniform random generation out of \texttt{num\_classes}, missing with \texttt{missing\_rate}.
+	\item \textbf{Numerical}: True value $+\ \mathcal{N}(0, \sigma^2)$; missing with \texttt{missing\_rate}.
+	\item \textbf{Datetime}: True timestamp $+\ \mathcal{N}(0, \sigma_{\text{hours}}^2)$ hours; missing with \texttt{missing\_rate}.
+\end{itemize}
+
+\subsubsection{Latent Event IDs}
+Every generated row receives a \texttt{latent\_event\_id}:
+\begin{itemize}
+	\item \texttt{OVER\_k}: Overlapping entities (same $k$ in A and B $\to$ true match).
+	\item \texttt{UNI\_A\_k}: Unique to A.
+	\item \texttt{UNIQ\_B\_k}: Unique to B.
+\end{itemize}
+These enable ground-truth evaluation without manual labelling.
+
+
+\subsection{Profile Aggregation Engine}
+\label{sec:agg_profile_engine}
+The profile aggregation engine transforms raw record tables into entity-level profile vectors.
+A simplified horizontal flow diagram illustrates the transformation:
+
+\begin{figure}[htbp]
+	\centering
+	\begin{tikzpicture}[
+			node distance=1.0cm,
+			every node/.style={font=\small},
+			tableTitle/.style={font=\small\bfseries},
+			% Compact stealth arrows
+			arrow/.style={->, >=stealth, thick, line width=1.2pt, color=gray!80, shorten >=6pt, shorten <=6pt}
+		]
+
+		% --- INPUT TABLE ---
+		\matrix [matrix of nodes, nodes={align=left, inner sep=3pt}, row sep=1pt, column sep=4pt] (inputTable) {
+			\rowcolor{tableHeader} \textbf{\texttt{unique\_id}} & \textbf{\texttt{feature\_1}} & \textbf{\texttt{feature\_2}} & \textbf{\texttt{feature\_3}} \\
+			\texttt{e1} & \texttt{val\_a1} & \texttt{val\_b1} & \texttt{val\_c1} \\
+			\rowcolor{tableRowEven} \texttt{e1} & \texttt{val\_a2} & \texttt{val\_b2} & \texttt{val\_c2} \\
+			\texttt{e2} & \texttt{val\_a3} & \texttt{val\_b3} & \texttt{val\_c3} \\
+		};
+		% Crisp top/bottom borders
+		\draw[line width=1.1pt] (inputTable.north west) -- (inputTable.north east);
+		\draw[line width=0.6pt] (inputTable-1-1.south west) -- (inputTable-1-4.south east);
+		\draw[line width=1.1pt] (inputTable.south west) -- (inputTable.south east);
+		\node[tableTitle, above=0.05cm of inputTable] (inputTitle) {Input Table};
+
+		% --- OUTPUT PROFILE TABLE ---
+		\matrix [matrix of nodes, nodes={align=left, inner sep=3pt}, row sep=1pt, column sep=4pt, right=1.5cm of inputTable] (outputTable) {
+			\rowcolor{tableHeader} \textbf{\texttt{unique\_id}} & \textbf{\texttt{prof\_1}} & \textbf{\texttt{prof\_2}} & \textbf{\texttt{prof\_3}} \\
+			\texttt{e1} & \texttt{agg\_a} & \texttt{agg\_b} & \texttt{agg\_c} \\
+			\rowcolor{tableRowEven} \texttt{e2} & \texttt{agg\_a'} & \texttt{agg\_b'} & \texttt{agg\_c'} \\
+		};
+		% Crisp top/bottom borders matching the input table exactly
+		\draw[line width=1.1pt] (outputTable.north west) -- (outputTable.north east);
+		\draw[line width=0.6pt] (outputTable-1-1.south west) -- (outputTable-1-4.south east);
+		\draw[line width=1.1pt] (outputTable.south west) -- (outputTable.south east);
+		\node[tableTitle, above=0.05cm of outputTable] (outputTitle) {Profile Table};
+
+		% --- DIRECT FLOW ARROW WITH LABEL ---
+		\draw[arrow] (inputTable.east) -- node[above, font=\scriptsize\bfseries, color=black!70] {Aggregate} (outputTable.west);
+
+	\end{tikzpicture}
+	\caption{Horizontal flow of the profile aggregation engine: raw records are grouped by entity identifier and transformed into fixed‑dimensional profile vectors.}
+	\label{fig:profile_agg_flow}
+\end{figure}
+
+The full implementation resides in the \texttt{em/aggregation/} package. It uses a \texttt{ProcessorRegistry} to map feature types to \texttt{ColumnProcessor} subclasses, and an \texttt{Aggregator} that coordinates multiple processors, builds vocabularies, applies aggregation functions, and runs post‑processors.
+
+\subsection{Splink Configuration Overview}
+\label{sec:splink_config}
+The Entity Matching pipeline uses the Splink library for probabilistic record linkage.
+All synthetic datasets share identical comparison logic; only dataset paths and resource parameters vary.
+Notebooks with real datasets reuse the same structure with domain‑specific field mappings.
+
+Supported comparison functions include:
+\begin{itemize}
+	\item Basic Splink levels: \texttt{NullLevel}, \texttt{ExactMatchLevel}, \texttt{ElseLevel}.
+	\item Binned levels: \texttt{PercentageDifferenceLevel}, \texttt{WithinNDaysLevel}, \texttt{JaroWinklerLevel}.
+	\item Custom comparisons via SQL expressions (e.g., for set similarities, range overlap).
+\end{itemize}
+
+The core workflow follows the Splink transaction demo pattern:
+\begin{enumerate}
+	\item Define comparison levels for each field.
+	\item Specify blocking rules as SQL predicates.
+	\item Train the model via expectation‑maximisation (EM) using a fixed schedule of blocking rules.
+	\item Generate predictions and evaluate against known latent IDs.
+\end{enumerate}
+
+Full code listings are in the respective notebooks mentioned by the report.
+
+\subsection{Blocking Rules Design}
+\label{sec:blocking_rules}
+Blocking rules are supplied as an array of SQL predicates to the argument \texttt{blocking\_rules\_to\_generate\_predictions}.
+Each rule targets a different matching signal (e.g., categorical equality, numerical proximity, temporal proximity) and their union bounds recall while reducing the comparison space.
+Example predicates (for synthetic data) are of the form:
+\begin{itemize}
+	\item \texttt{l.categorical = r.categorical OR l.categorical IS NULL OR r.categorical IS NULL}
+	\item \texttt{strftime(l.datetime\_noisy, '\%Y\%m') = strftime(r.datetime\_noisy, '\%Y\%m') OR l.datetime\_noisy IS NULL OR r.datetime\_noisy IS NULL}
+	\item \texttt{(ABS(l.numerical\_noisy - r.numerical\_noisy) / NULLIF(CASE WHEN l.numerical\_noisy > r.numerical\_noisy THEN l.numerical\_noisy ELSE r.numerical\_noisy END, 0)) < 0.25 OR l.numerical\_noisy IS NULL OR r.numerical\_noisy IS NULL}
+\end{itemize}
+
+Full code listings are in the respective notebooks mentioned by the report.
+
+\subsection{EM Training Schedule}
+\label{sec:em_training}
+Parameter estimation proceeds via a fixed sequence of expectation‑maximisation steps, each using a different blocking rule to estimate m‑probabilities for the remaining comparisons.
+The schedule begins with estimating the global prior from strict rules, then estimates u‑probabilities via random sampling, followed by EM rounds that alternate blocking columns to identify all m‑probabilities.
+
+Full code listings are in the respective notebooks mentioned by the report.

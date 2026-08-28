@@ -1,0 +1,50 @@
+% ============================================================
+% Annex A: Summary of ER Methodologies
+% ============================================================
+\section{Summary of Entity Resolution Methodologies}
+\label{annex:er_methodologies}
+
+This annex provides a structured overview of major ER approaches, their inference styles, and the problem structures they address.
+The choice of method is dictated by the constraints of the specific ER problem (data types, label availability, scale, attribute semantics).
+
+\begin{longtable}{p{2.5cm}p{2.5cm}p{3.5cm}p{3.5cm}p{3.5cm}}
+\toprule
+\textbf{Method Family} & \textbf{Inference Style} & \textbf{Problem Structure} & \textbf{Key Assumptions} & \textbf{Limitations} \\
+\midrule
+\endhead
+
+\fellegisunter{} (FS) & EM / MLE (unsupervised) & Pairwise classification; record pairs independent given match status & Conditional independence of fields; stationarity; comparison functions fixed & Independence violated in practice; requires good comparison functions; no transitive consistency \\
+
+Bayesian Networks / Graphical Models & MCMC / Variational Inference & Collective resolution; dependencies between pairs & Graph structure captures dependencies; prior knowledge encodable & Computationally heavy; requires structure learning or domain specification \\
+
+Hierarchical Clustering & Agglomerative / Divisive & No labels; distance matrix given & Metric space; linkage criterion matches cluster shape & $\mathcal{O}(n^2)$ or $\mathcal{O}(n^3)$; sensitive to noise; no probabilistic output \\
+
+Correlation Clustering & ILP / LP Relaxation / Approx & Partition into clusters; pairwise similarity & Objective: maximise agreements minus disagreements & NP-hard; approximations lose guarantees; no explicit match probabilities \\
+
+Supervised Binary Classification & Gradient Boosting / NN / SVM & Labelled pairs; features from record pairs & IID pairs; sufficient labels; feature engineering captures signal & Needs labels; pairs not IID (transitivity); class imbalance severe \\
+
+Learning to Rank & LambdaMART / ListNet & Rank candidates for each query record & Relevance grades available; listwise objective & Needs labelled lists; pointwise reduction loses list structure \\
+
+Deep Metric Learning / Siamese Nets & Contrastive / Triplet Loss & Learn embedding where matches are close & Large labelled data; architecture captures semantics & Black box; needs massive data; no direct probability \\
+
+LLM Semantic Matching & Prompting / Fine-tuning / Embeddings & Text-heavy records; semantic equivalence & LLM understands domain; prompts generalise & Costly; non-deterministic; hard to calibrate; no structure exploited \\
+
+Graph / Behavioural ER & Message Passing / GNN / Random Walk & Network / transactional data; behaviour defines identity & Entity behaviour is distinctive; graph structure informative & Requires graph construction; different feature space (behavioural vs attribute) \\
+
+Canonicalisation / Standardisation + Exact Match & Rule-based / Deterministic & Cleanable attributes; canonical forms exist & Rules are complete and correct & Brittle; manual effort; fails on fuzzy/noisy data \\
+
+Local-to-Global (This Work) & FS + Aggregation (unsupervised) & Stable within-dataset IDs; multi-record entities & Within-dataset ID stability; attribute types (text/num/date); conditional independence & Fails at low cardinality (indep breaks); 2 datasets only; static entities \\
+
+\bottomrule
+\end{longtable}
+
+\textbf{Decision Guidance}:
+\begin{itemize}
+    \item \textit{No labels, attribute data, stable IDs $\to$ FS (this work)}
+    \item \textit{No labels, attribute data, NO stable IDs $\to$ Clustering / Graphical Models}
+    \item \textit{Labels available, attribute data $\to$ Supervised / LTR / Deep Metric}
+    \item \textit{Text-heavy, semantic variation $\to$ LLM Embeddings + FS/Supervised}
+    \item \textit{Behavioural / Network data $\to$ Graph ER / GNN}
+    \item \textit{Multi-source ($>2$), transitive consistency needed $\to$ Collective / Graphical}
+    \item \textit{Temporal evolution $\to$ State-space / Incremental}
+\end{itemize}

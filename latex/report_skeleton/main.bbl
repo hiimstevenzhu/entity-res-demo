@@ -1,0 +1,66 @@
+\begin{thebibliography}{9}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Binette and Steorts(2022)]{binette2022almost}
+Olivier Binette and Rebecca~C. Steorts.
+\newblock (almost) all of entity resolution.
+\newblock \emph{Science Advances}, 8\penalty0 (12):\penalty0 eabi8021, 2022.
+\newblock URL \url{https://science.org}.
+
+\bibitem[Dempster et~al.(1977)Dempster, Laird, and Rubin]{dempster1977maximum}
+Arthur~P. Dempster, Nan~M. Laird, and Donald~B. Rubin.
+\newblock Maximum likelihood from incomplete data via the {EM} algorithm.
+\newblock \emph{Journal of the Royal Statistical Society: Series B
+  (Methodological)}, 39\penalty0 (1):\penalty0 1--22, 1977.
+
+\bibitem[Fellegi and Sunter(1969)]{fellegi1969theory}
+Ivan~P. Fellegi and Alan~B. Sunter.
+\newblock A theory for record linkage.
+\newblock \emph{Journal of the American Statistical Association}, 64\penalty0
+  (328):\penalty0 1183--1210, 1969.
+
+\bibitem[Linacre et~al.(2024)Linacre, Lindsay, et~al.]{splink2024}
+Robin Linacre, Sam Lindsay, et~al.
+\newblock Splink: Probabilistic record linkage and deduplication at scale.
+\newblock Technical report, UK Ministry of Justice, 2024.
+\newblock Core mathematical ports derived from fastLink (Enamorado, Fifield,
+  and Imai, 2019).
+
+\bibitem[Mozafari et~al.(2025)Mozafari, Sarkar, Franklin, Jordan, and
+  Madden]{mozafari2025active}
+Barzan Mozafari, Purnamrita Sarkar, Michael Franklin, Michael Jordan, and
+  Samuel Madden.
+\newblock Active learning for entity resolution at scale.
+\newblock In \emph{Proceedings of the VLDB Endowment}, 2025.
+
+\bibitem[Rough and Faingezicht(2024)]{rough2024minimal}
+Ethan Rough and Aaron Faingezicht.
+\newblock Roughly everything you need to know about entity resolution: Minimal
+  pipelines for warehouse matching.
+\newblock \emph{Technical Review and Guide}, 2024.
+
+\bibitem[Thibaudeau(1993)]{thibaudeau1993discrimination}
+Yves Thibaudeau.
+\newblock The discrimination power of dependency structures in record linkage.
+\newblock Research Report Series RR-93/01, US Bureau of the Census, Statistical
+  Research Division, 1993.
+
+\bibitem[Winkler(1989)]{winkler1989frequency}
+William~E. Winkler.
+\newblock Methods for frequency-based matching in the {Fellegi-Sunter} model of
+  record linkage.
+\newblock Statistical Research Division Report Series RR-89/02, U.S. Bureau of
+  the Census, 1989.
+
+\bibitem[Winkler(1993)]{winkler1993improved}
+William~E. Winkler.
+\newblock Improved decision rules in the {Fellegi-Sunter} model of record
+  linkage.
+\newblock In \emph{Proceedings of the Section on Survey Research Methods,
+  American Statistical Association}, pages 274--279, 1993.
+
+\end{thebibliography}

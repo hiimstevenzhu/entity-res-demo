@@ -1,0 +1,163 @@
+% ============================================================
+% Annex E: Full Set Similarity Metrics Framework
+% ============================================================
+\section{Unified Soft String-Matching Metrics Framework}
+\label{annex:set_similarities_full}
+
+\section{Definitions and Notation}
+Let $L$ and $R$ be two token lists representing the left and right records, respectively.
+Let $|L|$ and $|R|$ denote the total number of token slots in each list.
+Let $\text{JW}(x, y)$ represent the Jaro-Winkler similarity score between token $x$ and token $y$.
+
+We define the directional \textbf{Best-Match Sums} from left-to-right ($S_{L \to R}$) and right-to-left ($S_{R \to L}$) as follows:
+\begin{equation}
+	S_{L \to R} = \sum_{x \in L} \max_{y \in R} \text{JW}(x, y)
+\end{equation}
+\begin{equation}
+	S_{R \to L} = \sum_{y \in R} \max_{x \in L} \text{JW}(x, y)
+\end{equation}
+
+\section{The Four Soft Metrics}
+
+\subsection{Monge-Elkan Similarity (Asymmetric)}
+Measures the average of the best-matching scores from the query set ($L$) to the reference set ($R$):
+\begin{equation}
+	\text{MongeElkan}(L, R) = \frac{S_{L \to R}}{|L|}
+\end{equation}
+
+\subsection{Symmetric Soft Jaccard Similarity}
+Normalizes the combined mutual best-match scores by the total size of the distinct token union:
+\begin{equation}
+	\text{SoftJaccard}(L, R) = \frac{S_{L \to R} + S_{R \to L}}{2 \cdot |L \cup R|_{\text{distinct}}}
+\end{equation}
+
+\subsection{Symmetric Soft Dice Coefficient}
+Normalizes the combined mutual best-match scores by the total raw token slots available across both lists:
+\begin{equation}
+	\text{SoftDice}(L, R) = \frac{S_{L \to R} + S_{R \to L}}{|L| + |R|}
+\end{equation}
+
+\subsection{Soft Simpson Coefficient (Overlap Metric)}
+Normalizes the average mutual best-match score by the size of the smaller token list, isolating it from catalog size imbalances:
+\begin{equation}
+	\text{SoftSimpson}(L, R) = \frac{S_{L \to R} + S_{R \to L}}{2 \cdot \min(|L|, |R|)}
+\end{equation}
+
+\section{Unified Binned Comparison Logic}
+For any given metric score $S$, the assignment to a Splink comparison level is generalized using the following case structure:
+
+\begin{equation}
+	\text{ComparisonLevel}(S) =
+	\begin{cases}
+		\text{Null / Empty}      & \text{if } L \text{ is Null, } R \text{ is Null, } |L|=0, \text{ or } |R|=0 \\
+		\text{High Similarity}   & \text{if } S \ge \tau_{\text{high}}                                         \\
+		\text{Medium Similarity} & \text{if } S \ge \tau_{\text{med}}                                          \\
+		\text{Low Similarity}    & \text{if } S \ge \tau_{\text{low}}                                          \\
+		\text{Else}              & \text{otherwise}
+	\end{cases}
+\end{equation}
+
+where the operational mapping thresholds are defined as:
+
+\begin{table}[htbp]
+	\centering
+	\caption{Operational Level Thresholds}
+	\label{tab:set_thresholds_full}
+	\begin{tabular}{lccc}
+		\toprule
+		\textbf{Metric} & $\tau_{\text{high}}$ & $\tau_{\text{med}}$ & $\tau_{\text{low}}$ \\
+		\midrule
+		Monge-Elkan     & 0.85                 & 0.70                & 0.55                \\
+		Soft Jaccard    & 0.85                 & 0.65                & 0.40                \\
+		Soft Dice       & 0.85                 & 0.65                & 0.40                \\
+		Soft Simpson    & 0.85                 & 0.65                & 0.40                \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\section{DuckDB SQL Implementations}
+
+\subsection{Soft Jaccard}
+\begin{lstlisting}[language=SQL, caption={Soft Jaccard SQL}]
+-- Sum of best matches from L to R
+WITH max_sims_l AS (
+    SELECT list_aggregate(
+        list_transform(l.tokens, x ->
+            list_max(list_transform(r.tokens, y -> jaro_winkler_similarity(x, y)))
+        ), 'sum'
+    ) AS sum_l
+),
+-- Sum of best matches from R to L
+max_sims_r AS (
+    SELECT list_aggregate(
+        list_transform(r.tokens, y ->
+            list_max(list_transform(l.tokens, x -> jaro_winkler_similarity(x, y)))
+        ), 'sum'
+    ) AS sum_r
+),
+-- Union size
+union_size AS (
+    SELECT len(list_distinct(list_concat(l.tokens, r.tokens))) AS u_size
+)
+SELECT (sum_l + sum_r) / (2.0 * u_size) AS soft_jaccard
+FROM max_sims_l, max_sims_r, union_size;
+\end{lstlisting}
+
+\subsection{Monge-Elkan}
+\begin{lstlisting}[language=SQL, caption={Monge-Elkan SQL}]
+WITH max_sims AS (
+    SELECT list_aggregate(
+        list_transform(l.tokens, x ->
+            list_max(list_transform(r.tokens, y -> jaro_winkler_similarity(x, y)))
+        ), 'sum'
+    ) AS sum_l
+),
+len_l AS (
+    SELECT len(l.tokens) AS n
+)
+SELECT sum_l / n AS monge_elkan
+FROM max_sims, len_l;
+\end{lstlisting}
+
+\subsection{Soft Dice}
+\begin{lstlisting}[language=SQL, caption={Soft Dice SQL}]
+WITH max_sims_l AS (...), max_sims_r AS (...)
+SELECT (sum_l + sum_r) / (len(l.tokens) + len(r.tokens)) AS soft_dice
+FROM max_sims_l, max_sims_r;
+\end{lstlisting}
+
+\subsection{Soft Simpson}
+\begin{lstlisting}[language=SQL, caption={Soft Simpson SQL}]
+WITH max_sims_l AS (...), max_sims_r AS (...)
+SELECT (sum_l + sum_r) / (2.0 * least(len(l.tokens), len(r.tokens))) AS soft_simpson
+FROM max_sims_l, max_sims_r;
+\end{lstlisting}
+
+\section{Properties Summary}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Metric Properties Comparison}
+	\label{tab:metric_properties}
+	\begin{tabular}{lcccc}
+		\toprule
+		\textbf{Property}              & Monge-Elkan   & Soft Jaccard & Soft Dice       & Soft Simpson   \\
+		\midrule
+		Symmetric                      & No            & Yes          & Yes             & Yes            \\
+		Range                          & $[0,1]$       & $[0,1]$      & $[0,1]$         & $[0,1]$        \\
+		Reduces to JW when $|L|=|R|=1$ & Yes           & Yes          & Yes             & Yes            \\
+		Normalisation                  & By query size & By union     & By total tokens & By smaller set \\
+		Catalog-size robust            & No            & Partial      & Partial         & Yes            \\
+		Asymmetric (L vs R matters)    & Yes           & No           & No              & No             \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\section{Usage Recommendations}
+
+\begin{itemize}
+	\item \textbf{Monge-Elkan}: When $L$ is a query (e.g., user input) and $R$ is a reference catalog. Asymmetric by design.
+	\item \textbf{Soft Jaccard}: General-purpose symmetric similarity; normalised by union so penalises extra tokens on either side.
+	\item \textbf{Soft Dice}: Similar to Soft Jaccard but normalised by arithmetic mean of sizes; slightly higher scores for imbalanced sets.
+	\item \textbf{Soft Simpson}: When catalog size imbalance is the main confounder (e.g., one entity has 50 title tokens, other has 1). Isolates overlap quality from volume.
+\end{itemize}
