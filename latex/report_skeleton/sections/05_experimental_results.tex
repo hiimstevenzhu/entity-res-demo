@@ -7,7 +7,7 @@
 \subsection{Experiment 1: \texttt{base} Synthetic Dataset - \texttt{splink\_local\_demo.ipynb}}
 \label{sec:exp_smaller}
 \subsubsection{Dataset Description}
-This dataset consists of two tables with approximately 3,300 and 3,700 records, generated with 50 entities each, 10\% overlap, and 70/80 records per entity (A/B). It serves as our primary artificial dataset for evaluating the Splink pipeline while maintaining computational tractability.
+This dataset consists of two tables with approximately 3,300 and 3,700 records, generated with 50 entities each, 30\% overlap, and 70/80 records per entity (A/B). It serves as our primary artificial dataset for evaluating the Splink pipeline while maintaining computational tractability.
 \subsubsection{Blocking Rules Design}
 \label{sec:blocking_rules_exp1}
 The blocking rules target orthogonal signals to bound recall while reducing the comparison space. Each rule is a disjunctive condition that allows matches when the attribute agrees or when data is missing on either side.
@@ -94,8 +94,8 @@ We term the threshold curves for each aggregation function as \textit{profiles}.
 To understand how specific dataset characteristics affect matching quality and computational efficiency, we created several variants of the synthetic dataset by modifying single parameters while keeping the Splink configuration constant. This allows us to isolate the impact of each factor.
 \subsubsection{Variant Overview}
 \begin{itemize}
-    \item \texttt{smallest}: This dataset consists of two tables with approximately 3,300 and 3,700 records, generated with 50 entities each, 10\% overlap, and 30/35 records per entity.
-    \item \texttt{low\_card}: 100 entities each, 10\% overlap, 5/5 records per entity (low intra-entity variation)
+    \item \texttt{smallest}: This dataset consists of two tables with approximately 3,300 and 3,700 records, generated with 50 entities each, 10\% overlap, and 35/45 records per entity.
+    \item \texttt{low\_card}: 100 entities each, 10\% overlap, 18/12 records per entity (low intra-entity variation)
     \item \texttt{o50}: 50 entities each, 50\% overlap, 30/35 records per entity
 \end{itemize}
 \subsubsection{Configuration}
@@ -119,7 +119,7 @@ The variant experiments reveal how different dataset characteristics influence t
 \subsubsection{smallest Variant}
 \label{sec:exp_smallest}
 \paragraph{Dataset Description}
-The smallest variant has 50 entities each, 10\% overlap, and cardinality 30/35 per entity.
+The smallest variant has 50 entities each, 10\% overlap, and cardinality 35/45 per entity.
 
 \paragraph{Results}
 Figures~\ref{fig:match_weights_smallest} and~\ref{fig:threshold_curve_smallest} show the match weights and threshold selection curve for this variant.
@@ -167,7 +167,7 @@ still retains a satisfiable level of stability. In particular, weighted Jaccard 
 \subsubsection{low\_card Variant}
 \label{sec:exp_low_card}
 \paragraph{Dataset Description}
-The low\_card variant has 100 entities each, 10\% overlap, and cardinality 5/5 per entity (low intra-entity variation).
+The low\_card variant has 100 entities each, 10\% overlap, and cardinality 18/12 per entity (low intra-entity variation).
 
 \paragraph{Results}
 Figures~\ref{fig:match_weights_low_card} and~\ref{fig:threshold_curve_low_card} show the match weights and threshold selection curve for this variant.

@@ -7,7 +7,7 @@
 \subsection{Failure Modes at Low Cardinality}
 \label{sec:low_card_failure}
 
-The \texttt{low\_card} config (5 rows/entity, 100 entities, 10\% overlap) exposes fundamental failure modes:
+The \texttt{low\_card} config (18/12 rows/entity, 100 entities, 10\% overlap) exposes fundamental failure modes:
 
 \subsubsection{Independence Assumption Violation}
 The \fellegisunter{} model assumes conditional independence of comparisons given match status.
@@ -22,7 +22,7 @@ Result: match weights are overconfident (too high for matches, too low for non-m
 
 \subsubsection{Combinatorial Explosion in Comparison Space}
 For a global pair with $m$ and $n$ records, there are $m \times n$ local pairs.
-When $m,n$ are large (e.g., 100 $\times$ 120 = 12,000 pairs per global entity), the Cartesian product explodes.
+When $m,n$ are large (e.g., 18 \times 12 = 216 pairs per global entity), the Cartesian product explodes.
 Blocking must be aggressive, but aggressive blocking loses recall.
 The \texttt{c2} config (200/200) has 40,000 pairs per global entity—computationally prohibitive without strong blocking.
 
@@ -32,7 +32,7 @@ At low cardinality, the number of true matches in any blocking rule is small ($O
 Parameter estimates have high variance; \emalgo{} may converge to unstable values or fail to converge.
 
 \subsubsection{Aggregation robustness}
-As we see in \ref{sec:exp_aggregation}, single scalar aggregation handles all cardinality regimes robustly.
+As we see in \ref{sec:exp_aggregation}, single scalar aggregation functions handle most cardinality regimes robustly. At regimes of extremely low cardinality, however, this approach breaks - record pairs are degenerate, and function scores are as a result, noisy.
 
 % \subsection{Proposed Mitigation: Profile-Based Probabilistic Matching}
 % \label{sec:profile_splink_proposal}
@@ -80,7 +80,7 @@ As we see in \ref{sec:exp_aggregation}, single scalar aggregation handles all ca
 % Experiments in \texttt{splink\_low\_card.ipynb} and \texttt{splink\_low\_card\_copy.ipynb}:
 % \begin{itemize}
 % 	\item Primary layer on \texttt{low\_card}: Match weight separation degraded; $F_1$ drops to \textit{TBD}.
-% 	\item Profile construction: Aggregator runs on 5-record groups; vectors are sparse but informative.
+% 	\item Profile construction: Aggregator runs on 18/12-record groups; vectors are sparse but informative.
 % 	\item Profile-based \splink{}: \textit{TBD: Insert results from notebooks}.
 % 	\item Comparison: Profile-based vs best scalar aggregation (max).
 % \end{itemize}
