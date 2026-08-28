@@ -326,16 +326,3 @@ class DatetimeGenerator:
         # values + N(0, sigma_hours^2); missing_rate -> NaT
         pass
 \end{lstlisting}
-
-\section{Configuration Variants}
-\label{annex:config_variants}
-
-\begin{itemize}
-	\item \texttt{smallestest\_config.yaml}: $N=100$, rows 100/120 (fastest)
-	\item \texttt{smaller\_config.yaml}: $N=1000$, rows 100/120 (standard)
-	\item \texttt{small\_config.yaml}: $N=5000$, rows 100/120 (scale)
-	\item \texttt{med\_30\_overlap\_config.yaml}: $N=10000$, overlap 30\%
-	\item \texttt{low\_card\_config.yaml}: $N=100$, rows 5/5 (cardinality extreme)
-	\item \texttt{c2\_config.yaml}: $N=1000$, rows 200/200 (high cardinality)
-	\item \texttt{o50\_config.yaml}: $N=1000$, overlap 50\%
-\end{itemize}

@@ -22,9 +22,8 @@ Result: match weights are overconfident (too high for matches, too low for non-m
 
 \subsubsection{Combinatorial Explosion in Comparison Space}
 For a global pair with $m$ and $n$ records, there are $m \times n$ local pairs.
-When $m,n$ are large (e.g., 18 \times 12 = 216 pairs per global entity), the Cartesian product explodes.
+When $m$,$n$ are large (e.g., $18 \times 12 = 216$ pairs per global entity), the Cartesian product explodes.
 Blocking must be aggressive, but aggressive blocking loses recall.
-The \texttt{c2} config (200/200) has 40,000 pairs per global entity—computationally prohibitive without strong blocking.
 
 \subsubsection{Sparse Parameter Estimation}
 \emalgo{} estimates $m_k(\gamma)$ from pairs in the blocking rule.

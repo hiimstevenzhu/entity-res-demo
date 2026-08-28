@@ -110,18 +110,18 @@
 \contentsline {subsection}{\numberline {7.1}On confidence scores and the Fellegi-Sunter model}{48}{subsection.7.1}%
 \contentsline {subsection}{\numberline {7.2}Splink, and modern Fellegi-Sunter}{50}{subsection.7.2}%
 \contentsline {subsection}{\numberline {7.3}Limitations}{50}{subsection.7.3}%
-\contentsline {section}{\numberline {8}Future Work \& Conclusion}{51}{section.8}%
-\contentsline {subsection}{\numberline {8.1}Future Work}{51}{subsection.8.1}%
-\contentsline {subsubsection}{\numberline {8.1.1}1. Automated Threshold Selection via Mixture Models}{51}{subsubsection.8.1.1}%
+\contentsline {section}{\numberline {8}Future Work \& Conclusion}{50}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Future Work}{50}{subsection.8.1}%
+\contentsline {subsubsection}{\numberline {8.1.1}1. Automated Threshold Selection via Mixture Models}{50}{subsubsection.8.1.1}%
 \contentsline {subsubsection}{\numberline {8.1.2}Further exploration into hierarchical probabilistic linkage}{51}{subsubsection.8.1.2}%
 \contentsline {subsubsection}{\numberline {8.1.3}Active Learning \& Label Minimisation}{51}{subsubsection.8.1.3}%
 \contentsline {subsubsection}{\numberline {8.1.4}Multi-Source (K $>$ 2) Global Resolution}{51}{subsubsection.8.1.4}%
-\contentsline {subsubsection}{\numberline {8.1.5}Distributed \textsc {Splink}{} on Spark for Scale}{52}{subsubsection.8.1.5}%
+\contentsline {subsubsection}{\numberline {8.1.5}Distributed \textsc {Splink}{} on Spark for Scale}{51}{subsubsection.8.1.5}%
 \contentsline {subsubsection}{\numberline {8.1.6}Temporal Entity Resolution}{52}{subsubsection.8.1.6}%
 \contentsline {subsubsection}{\numberline {8.1.7}Semantic Augmentation (LLM Hybrid)}{52}{subsubsection.8.1.7}%
 \contentsline {subsection}{\numberline {8.2}Conclusion}{52}{subsection.8.2}%
 \contentsline {paragraph}{Key findings:}{52}{subsection.8.2}%
-\contentsline {paragraph}{The framework is characterised by:}{53}{Item.38}%
+\contentsline {paragraph}{The framework is characterised by:}{52}{Item.38}%
 \contentsline {section}{\numberline {A}Summary of Entity Resolution Methodologies}{53}{appendix.A}%
 \contentsline {section}{\numberline {B}Mathematical Derivations}{55}{appendix.B}%
 \contentsline {section}{\numberline {C}Fellegi-Sunter Model Derivation}{55}{appendix.C}%
@@ -132,7 +132,7 @@
 \contentsline {section}{\numberline {D}Aggregation Function Properties}{56}{appendix.D}%
 \contentsline {section}{\numberline {E}Set Similarity Metrics}{56}{appendix.E}%
 \contentsline {subsection}{\numberline {E.1}Monge-Elkan}{56}{subsection.E.1}%
-\contentsline {subsection}{\numberline {E.2}Soft Jaccard}{57}{subsection.E.2}%
+\contentsline {subsection}{\numberline {E.2}Soft Jaccard}{56}{subsection.E.2}%
 \contentsline {subsection}{\numberline {E.3}Magnitude-Weighted Cosine}{57}{subsection.E.3}%
 \contentsline {section}{\numberline {F}Cardinality Breakdown Analysis}{57}{appendix.F}%
 \contentsline {section}{\numberline {G}Data Generation Implementation}{57}{appendix.G}%
@@ -142,24 +142,23 @@
 \contentsline {subsection}{\numberline {J.1}\texttt {data\_generator/entitymanager.py}}{61}{subsection.J.1}%
 \contentsline {subsection}{\numberline {J.2}\texttt {data\_generator/pipeline.py}}{61}{subsection.J.2}%
 \contentsline {subsection}{\numberline {J.3}\texttt {data\_generator/generator.py}}{62}{subsection.J.3}%
-\contentsline {section}{\numberline {K}Configuration Variants}{62}{appendix.K}%
-\contentsline {section}{\numberline {L}Unified Soft String-Matching Metrics Framework}{63}{appendix.L}%
-\contentsline {section}{\numberline {M}Definitions and Notation}{63}{appendix.M}%
-\contentsline {section}{\numberline {N}The Four Soft Metrics}{63}{appendix.N}%
-\contentsline {subsection}{\numberline {N.1}Monge-Elkan Similarity (Asymmetric)}{63}{subsection.N.1}%
-\contentsline {subsection}{\numberline {N.2}Symmetric Soft Jaccard Similarity}{63}{subsection.N.2}%
-\contentsline {subsection}{\numberline {N.3}Symmetric Soft Dice Coefficient}{63}{subsection.N.3}%
-\contentsline {subsection}{\numberline {N.4}Soft Simpson Coefficient (Overlap Metric)}{63}{subsection.N.4}%
-\contentsline {section}{\numberline {O}Unified Binned Comparison Logic}{63}{appendix.O}%
-\contentsline {section}{\numberline {P}DuckDB SQL Implementations}{64}{appendix.P}%
-\contentsline {subsection}{\numberline {P.1}Soft Jaccard}{64}{subsection.P.1}%
-\contentsline {subsection}{\numberline {P.2}Monge-Elkan}{64}{subsection.P.2}%
-\contentsline {subsection}{\numberline {P.3}Soft Dice}{65}{subsection.P.3}%
-\contentsline {subsection}{\numberline {P.4}Soft Simpson}{65}{subsection.P.4}%
-\contentsline {section}{\numberline {Q}Properties Summary}{65}{appendix.Q}%
-\contentsline {section}{\numberline {R}Usage Recommendations}{65}{appendix.R}%
-\contentsline {section}{\numberline {S}Artist Matching Ground Truth and Precision/Recall Guarantees}{66}{appendix.S}%
-\contentsline {subsection}{\numberline {S.1}Subset Precision is a Lower Bound on True Precision}{66}{subsection.S.1}%
-\contentsline {subsection}{\numberline {S.2}Artist Matching Prior and Recall Estimation under Clustered Noise}{66}{subsection.S.2}%
-\contentsline {subsubsection}{\numberline {S.2.1}Preservation of the True Match Prior ($p$)}{67}{subsubsection.S.2.1}%
-\contentsline {subsubsection}{\numberline {S.2.2}Clustered Noise and Captured Predictive Inflation ($q$)}{67}{subsubsection.S.2.2}%
+\contentsline {section}{\numberline {K}Unified Soft String-Matching Metrics Framework}{62}{appendix.K}%
+\contentsline {section}{\numberline {L}Definitions and Notation}{62}{appendix.L}%
+\contentsline {section}{\numberline {M}The Four Soft Metrics}{63}{appendix.M}%
+\contentsline {subsection}{\numberline {M.1}Monge-Elkan Similarity (Asymmetric)}{63}{subsection.M.1}%
+\contentsline {subsection}{\numberline {M.2}Symmetric Soft Jaccard Similarity}{63}{subsection.M.2}%
+\contentsline {subsection}{\numberline {M.3}Symmetric Soft Dice Coefficient}{63}{subsection.M.3}%
+\contentsline {subsection}{\numberline {M.4}Soft Simpson Coefficient (Overlap Metric)}{63}{subsection.M.4}%
+\contentsline {section}{\numberline {N}Unified Binned Comparison Logic}{63}{appendix.N}%
+\contentsline {section}{\numberline {O}DuckDB SQL Implementations}{63}{appendix.O}%
+\contentsline {subsection}{\numberline {O.1}Soft Jaccard}{63}{subsection.O.1}%
+\contentsline {subsection}{\numberline {O.2}Monge-Elkan}{64}{subsection.O.2}%
+\contentsline {subsection}{\numberline {O.3}Soft Dice}{64}{subsection.O.3}%
+\contentsline {subsection}{\numberline {O.4}Soft Simpson}{64}{subsection.O.4}%
+\contentsline {section}{\numberline {P}Properties Summary}{65}{appendix.P}%
+\contentsline {section}{\numberline {Q}Usage Recommendations}{65}{appendix.Q}%
+\contentsline {section}{\numberline {R}Artist Matching Ground Truth and Precision/Recall Guarantees}{65}{appendix.R}%
+\contentsline {subsection}{\numberline {R.1}Subset Precision is a Lower Bound on True Precision}{65}{subsection.R.1}%
+\contentsline {subsection}{\numberline {R.2}Artist Matching Prior and Recall Estimation under Clustered Noise}{66}{subsection.R.2}%
+\contentsline {subsubsection}{\numberline {R.2.1}Preservation of the True Match Prior ($p$)}{66}{subsubsection.R.2.1}%
+\contentsline {subsubsection}{\numberline {R.2.2}Clustered Noise and Captured Predictive Inflation ($q$)}{66}{subsubsection.R.2.2}%
