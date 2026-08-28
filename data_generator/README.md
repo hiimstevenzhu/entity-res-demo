@@ -16,10 +16,12 @@ The core components are:
 ## Configuration
 
 All generation parameters are driven by YAML files located in `configs/`:
+
 - `base.yaml` – Default settings shared by all dataset sizes.
 - `smallest_config.yaml`, `smaller_config.yaml`, `low_card_config.yaml`, `o50_config.yaml`, `smallestest_config.yaml` – Presets for different dataset scales and characteristics.
 
 Each YAML contains sections such as:
+
 ```yaml
 n_entities: 1000
 missing_probability: 0.05
@@ -27,7 +29,8 @@ numerical_noise_sigma: 0.1
 datetime_noise_sigma_hours: 2
 categorical_missing_toggle: true
 ```
-Adjust these values to control volume, noise level, missingness, and cardnality.
+
+Adjust these values to control volume, noise level, missingness, and cardinality.
 
 ## Adding Custom Data Types
 
@@ -43,7 +46,7 @@ To support a new column type (e.g., embeddings, IP addresses, custom strings):
    ```yaml
    columns:
      - name: "embedding"
-       type: "embedding_generator"   # matches the registry key
+       type: "embedding_generator" # matches the registry key
        missing_probability: 0.02
    ```
 
@@ -52,14 +55,18 @@ No modifications to the generation orchestration pipelines (`generator.py`, `pip
 ## Usage
 
 Run the top‑level script to generate all configured datasets:
+
 ```bash
 python generate_data.py
 ```
+
 Outputs are written to `data/` as Parquet files (or whatever format is specified in the config).
 
 For programmatic use, import the modules:
+
 ```python
 from data_generator.entitymanager import EntitySpace
 from data_generator.generator import generate_datasets
 ```
+
 See the docstrings in those files for detailed API information.
